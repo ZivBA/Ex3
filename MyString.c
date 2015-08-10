@@ -4,9 +4,12 @@
 
 
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
 #include "MyString.h"
+
+
+#define MALLOC_ERROR "Error allocating memory\n"
+
 //0 is 48 in ascii so thec number 1 is 1+48=49
 #define INT_ASCII_DIFF 48
 #define INT_ASCII_MAX 57
@@ -24,8 +27,6 @@
 #define COMP_TRUE 1
 // false return value for the equal method
 #define COMP_FALSE 0
-// default comparator, return a-b for two chars casted to ints.
-#define DEFAULT_COMPARATOR(a, b) ((int)a-(int)b)
 // returns the minimum of 2 int values.
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
@@ -41,6 +42,7 @@ typedef struct _MyString
 
 } MyString;
 
+
 /**
  * @brief Allocates a new MyString and sets its value to "" (the empty string).
  * 			It is the caller's responsibility to free the returned MyString.
@@ -50,10 +52,13 @@ typedef struct _MyString
  */
 MyString *myStringAlloc()
 {
+
 	MyString *temp = malloc(sizeof(MyString));
-	temp->actualString = "";
+	temp->actualString = malloc(sizeof(char*));
+	*temp->actualString = (char) "";
 	temp->length = 0;
-	temp->refCount = 0;
+	temp->refCount = malloc(sizeof(int*));
+	*temp->refCount = 0;
 	return temp;
 }
 
@@ -63,7 +68,7 @@ MyString *myStringAlloc()
  */
 static void refCountDecrement(MyString *str)
 {
-	str->refCount--;
+	*str->refCount-=1;
 }
 
 /**
@@ -71,7 +76,7 @@ static void refCountDecrement(MyString *str)
  */
 static void refCountIncrement(MyString *str)
 {
-	str->refCount++;
+	*str->refCount+=1;
 }
 
 /**
@@ -79,8 +84,9 @@ static void refCountIncrement(MyString *str)
  */
 static void freeCString(MyString *pString)
 {
-	if (*pString->refCount == 1)
+	if (*pString->refCount == 0)
 	{
+		free(pString->refCount);
 		free(pString->actualString);
 	}
 	else
@@ -102,12 +108,9 @@ void myStringFree(MyString *str)
 	free(str);
 }
 
-static bool strCheckNull(const MyString *str)
+static bool isStringNull(const MyString *str)
 {
-	if (str == NULL || str->actualString == NULL)
-	{
-		return false;
-	}
+	return (str == NULL || str->actualString == NULL);
 }
 
 /**
@@ -123,7 +126,7 @@ MyString *myStringClone(const MyString *str)
 	MyString *temp = myStringAlloc();
 
 	//check if string to clone is non-null
-	if (strCheckNull(str))
+	if (isStringNull(str))
 	{
 		return temp;
 	}
@@ -133,6 +136,12 @@ MyString *myStringClone(const MyString *str)
 	temp->refCount = str->refCount;
 	refCountIncrement(temp);
 	return temp;
+}
+
+static void refReset(MyString *str)
+{
+	str->refCount = malloc(sizeof(int));
+	*str->refCount = 0;
 }
 
 /**
@@ -146,25 +155,27 @@ MyString *myStringClone(const MyString *str)
 MyStringRetVal myStringSetFromMyString(MyString *str, const MyString *other)
 {
 	// check that the source string is non-null
-	if (!strCheckNull(other))
+	if (isStringNull(other))
 	{
-		free(str->actualString);
-		str->actualString = other->actualString;
+		return MYSTRING_ERROR;
 	}
+
 	//check and see if the old CString can be freed.
 	freeCString(str);
-
+	refReset(str);
+	str->actualString = other->actualString;
 	//re-point counter and increment.
 	str->refCount = other->refCount;
 	refCountIncrement(str);
+
 
 	return MYSTRING_SUCCESS;
 }
 
 
-static bool cStringNullCheck(char *cStringToCheck)
+static bool cStringNullCheck(const char *cStringToCheck)
 {
-	return *cStringToCheck == NULL;
+	return cStringToCheck == NULL;
 }
 
 /**
@@ -183,6 +194,7 @@ MyStringRetVal myStringFilter(MyString *str, bool (*filt)(const char *))
 	// ensure malloc is successful.
 	if (cStringNullCheck(newString))
 	{
+		printf(MALLOC_ERROR);
 		return MYSTRING_ERROR;
 	}
 
@@ -197,19 +209,32 @@ MyStringRetVal myStringFilter(MyString *str, bool (*filt)(const char *))
 	}
 
 	// housekeeping: reallocate memory to minimize array size, free old Cstring
-	realloc(newString, counter * sizeof(char));
-
 	// ensure realloc was successfull
-	if (sizeof(newString) != counter * sizeof(char))
+	if (sizeof(realloc(newString, counter * sizeof(char))) != counter * sizeof(char))
 	{
+		printf(MALLOC_ERROR);
 		return MYSTRING_ERROR;
 	}
 
 	freeCString(str);
 	str->actualString = newString;
+	refReset(str);
+
 	return MYSTRING_SUCCESS;
 
 
+}
+
+int cStringCheckLength(const char *cString)
+{
+	if (cString == NULL) return -1;
+	int counter = 0;
+	char curChar = *cString;
+	while (curChar!='\0'){
+		curChar = *(cString+(sizeof(char)*counter));
+		counter++;
+	}
+	return --counter;
 }
 
 /**
@@ -228,14 +253,26 @@ MyStringRetVal myStringFilter(MyString *str, bool (*filt)(const char *))
 
 MyStringRetVal myStringSetFromCString(MyString *str, const char *cString)
 {
-
 	//check that the string isn't null
 	if (cStringNullCheck(cString)) return MYSTRING_ERROR;
+
+	int length = cStringCheckLength(cString);
+	char*copyOfCstring = malloc(length * sizeof(char));
+
+	//check memory alloc
+	if (copyOfCstring == NULL){
+		printf(MALLOC_ERROR);
+		return MYSTRING_ERROR;
+	}
+
+	memcpy(copyOfCstring, cString, length*sizeof(char));
+
 	//free old Cstring then reassign the pointer to new string.
 	freeCString(str);
-	str->actualString = (char *) cString;
-	//reset the refcount for this string.
-	str->refCount = 0;
+	str->actualString = copyOfCstring;
+	refReset(str);
+
+	str->length = length;
 	return MYSTRING_SUCCESS;
 }
 
@@ -244,8 +281,7 @@ static char *reverseCstring(char *tempNum, int i)
 {
 	for (int j = 0; j < i - 1; ++j)
 	{
-		printf("Current num =:%s\n", tempNum);
-		printf("Current j =:%i\n", j);
+
 		char tempChar;
 
 		tempChar = tempNum[j];
@@ -272,13 +308,14 @@ static char *intToCString(int n)
 		n *= -1;
 		i++;
 	}
-	for (; n != 0 || i < MAX_DIGITS_FOR_INT; ++i)
+	for (; n != 0 && i < MAX_DIGITS_FOR_INT; ++i)
 	{
 		tempNum[i] = (char) (n % 10 + INT_ASCII_DIFF);
 		n /= DECIMAL_SYSTEM;
-		printf("Current num =:%s\n", tempNum);
-		printf("Current i =:%i\n", i);
+
 	}
+	realloc(tempNum,i*sizeof(char));
+	tempNum[i]='\0';
 
 	return reverseCstring(tempNum, i);
 }
@@ -298,7 +335,8 @@ MyStringRetVal myStringSetFromInt(MyString *str, int n)
 	freeCString(str);
 	// parse int to Cstring and assign reference to string, then zero the counter;
 	str->actualString = (intToCString(n));
-	str->refCount = 0;
+	str->length = cStringCheckLength(str->actualString);
+	refReset(str);
 	//check that the procedure was succesfull
 	if (str->actualString == NULL)
 	{
@@ -306,6 +344,21 @@ MyStringRetVal myStringSetFromInt(MyString *str, int n)
 	}
 	return MYSTRING_SUCCESS;
 
+}
+
+double power(int base, int factor)
+{
+	int sum = 1;
+	for (int i = 1; i < factor; ++i)
+	{
+		sum *= base;
+	}
+	return sum;
+}
+
+int charToInt(char c)
+{
+	return (int)c-INT_ASCII_DIFF;
 }
 
 /**
@@ -331,14 +384,14 @@ int myStringToInt(const MyString *str)
 	}
 
 	//iterate over string, multiply each digit by  10^(digitNumber) and add to sum
-	for (; i <= str->length; ++i)
+	for (; i < str->length; ++i)
 	{
 		if (str->actualString[i] > INT_ASCII_MAX || str->actualString[i] < INT_ASCII_DIFF)
 		{
 			tempSum = MYSTRING_ERROR;
 			return tempSum;
 		}
-		tempSum += (str->actualString[i] * (pow(DECIMAL_SYSTEM, str->length - i)));
+		tempSum += (charToInt(str->actualString[i]) * (power(DECIMAL_SYSTEM, str->length - i)));
 	}
 	//make sure the sign is maintained.
 	return tempSum * signFlip;
@@ -371,12 +424,12 @@ char *myStringToCString(const MyString *str)
  */
 MyStringRetVal myStringCat(MyString *dest, const MyString *src)
 {
-	if (dest->refCount != 0)
+	if (*dest->refCount != 0)
 	{
 		char *oldString = myStringToCString(dest);
 		freeCString(dest);
 		dest->actualString = oldString;
-		dest->refCount = 0;
+		refReset(dest);
 	}
 	//try to allocate memory.
 	char *newPointer = realloc(dest->actualString, (dest->length + src->length) * sizeof(char));
@@ -430,7 +483,7 @@ int myStringCustomCompare(const MyString *str1, const MyString *str2,
 {
 
 	// check if both strings are valid.
-	if (strCheckNull(str1) || strCheckNull(str2)) return MYSTRING_ERROR;
+	if (isStringNull(str1) || isStringNull(str2)) return MYSTRING_ERROR;
 
 	// check if both strings are referencing the same CString.
 	if (str1->actualString == str2->actualString) return COMP_EQUAL;
@@ -439,7 +492,7 @@ int myStringCustomCompare(const MyString *str1, const MyString *str2,
 	//compare each pair of chars, return if mismatch found.
 	for (int i = 0; i < MIN(str1->length, str2->length); ++i)
 	{
-		diff = comp((const char *) str1->actualString[i], (const char *) str2->actualString[i]);
+		diff = comp((const char *) &str1->actualString[i], (const char *) &str2->actualString[i]);
 
 		if (diff > 0) return COMP_GRT;
 		if (diff < 0) return COMP_SMT;
@@ -450,6 +503,12 @@ int myStringCustomCompare(const MyString *str1, const MyString *str2,
 	return str1->length - str2->length;
 
 
+}
+
+
+int defaultComparator(const char *a, const char *b)
+{
+	return (int) *a - (int) *b;
 }
 
 /**
@@ -467,7 +526,7 @@ int myStringCustomCompare(const MyString *str1, const MyString *str2,
 int myStringCompare(const MyString *str1, const MyString *str2)
 {
 	//utilize the more powerful customCompare with a default comparator macro.
-	return myStringCustomCompare(str1, str2, DEFAULT_COMPARATOR);
+	return myStringCustomCompare(str1, str2, defaultComparator);
 
 }
 
@@ -538,14 +597,14 @@ MyStringRetVal myStringWrite(const MyString *str, FILE *stream)
 
 	if (stream == NULL) return MYSTRING_ERROR;
 	fprintf(stream, "\t%50s\n", "Here layeth the contents of a String Struct");
-	fprintf(stream, "\t%50.40s%-10i\n", "It's length is: ",str->length);
-	fprintf(stream, "\t%45.40s%10i%5s\n", "It has been referenced ",*str->refCount, " times.");
+	fprintf(stream, "\t%50.40s%-10i\n", "It's length is: ", str->length);
+	fprintf(stream, "\t%45.40s%10i%5s\n", "It has been referenced ", *str->refCount, " times.");
 	fprintf(stream, "\t%50s\n", "And it's content is:");
 	fprintf(stream, "\t%50s\n", str->actualString);
 
 	fclose(stream);
+	return MYSTRING_SUCCESS;
 }
-
 
 
 /**
@@ -556,13 +615,13 @@ MyStringRetVal myStringWrite(const MyString *str, FILE *stream)
  *
  * RETURN VALUE:none
   */
-void myStringCoustomSort(MyString *arr, int len, int (*comp)(const char *a, const char *b))
+void myStringCוstomSort(MyString *arr, int len, int (*comp)(const char *a, const char *b))
 {
 
 	int cmpfunc(const void *a, const void *b)
 	{
 		int result = myStringCustomCompare((MyString *) a, (MyString *) b, comp);
-		if (result == MYSTRING_ERROR) return NULL;
+		if (result == MYSTRING_ERROR) return '\0';
 		return result;
 	}
 
@@ -570,6 +629,7 @@ void myStringCoustomSort(MyString *arr, int len, int (*comp)(const char *a, cons
 	qsort(arr, (size_t) len, sizeof(MyString), cmpfunc);
 
 }
+
 /**
  * @brief sorts an array of MyString pointers according to the default comparison (like in myStringCompare)
  * @param arr
@@ -577,4 +637,16 @@ void myStringCoustomSort(MyString *arr, int len, int (*comp)(const char *a, cons
  *
  * RETURN VALUE: none
   */
-//TODO insert myStringSort signature here
+void myStringSort(MyString *arr, int len)
+{
+
+	int cmpfunc(const void *a, const void *b)
+	{
+		int result = myStringCustomCompare((MyString *) a, (MyString *) b, defaultComparator);
+		if (result == MYSTRING_ERROR) return '\0';
+		return result;
+	}
+
+	qsort(arr, (size_t) len, sizeof(MyString), cmpfunc);
+
+}
