@@ -54,10 +54,10 @@ MyString *myStringAlloc()
 {
 
 	MyString *temp = malloc(sizeof(MyString));
-	temp->actualString = malloc(sizeof(char*));
-	*temp->actualString = (char) "";
+	temp->actualString = malloc(sizeof(char *));
+	*temp->actualString = '\0';
 	temp->length = 0;
-	temp->refCount = malloc(sizeof(int*));
+	temp->refCount = malloc(sizeof(int *));
 	*temp->refCount = 0;
 	return temp;
 }
@@ -68,7 +68,7 @@ MyString *myStringAlloc()
  */
 static void refCountDecrement(MyString *str)
 {
-	*str->refCount-=1;
+	*str->refCount -= 1;
 }
 
 /**
@@ -76,7 +76,7 @@ static void refCountDecrement(MyString *str)
  */
 static void refCountIncrement(MyString *str)
 {
-	*str->refCount+=1;
+	*str->refCount += 1;
 }
 
 /**
@@ -230,8 +230,9 @@ int cStringCheckLength(const char *cString)
 	if (cString == NULL) return -1;
 	int counter = 0;
 	char curChar = *cString;
-	while (curChar!='\0'){
-		curChar = *(cString+(sizeof(char)*counter));
+	while (curChar != '\0')
+	{
+		curChar = *(cString + (sizeof(char) * counter));
 		counter++;
 	}
 	return --counter;
@@ -257,15 +258,16 @@ MyStringRetVal myStringSetFromCString(MyString *str, const char *cString)
 	if (cStringNullCheck(cString)) return MYSTRING_ERROR;
 
 	int length = cStringCheckLength(cString);
-	char*copyOfCstring = malloc(length * sizeof(char));
+	char *copyOfCstring = malloc(length * sizeof(char));
 
 	//check memory alloc
-	if (copyOfCstring == NULL){
+	if (copyOfCstring == NULL)
+	{
 		printf(MALLOC_ERROR);
 		return MYSTRING_ERROR;
 	}
 
-	memcpy(copyOfCstring, cString, length*sizeof(char));
+	memcpy(copyOfCstring, cString, length * sizeof(char));
 
 	//free old Cstring then reassign the pointer to new string.
 	freeCString(str);
@@ -314,8 +316,12 @@ static char *intToCString(int n)
 		n /= DECIMAL_SYSTEM;
 
 	}
-	realloc(tempNum,i*sizeof(char));
-	tempNum[i]='\0';
+	char *temp = realloc(tempNum, i * sizeof(char));
+	if (*temp != *tempNum){
+		printf(MALLOC_ERROR);
+		return NULL;
+	}
+	tempNum[i] = '\0';
 
 	return reverseCstring(tempNum, i);
 }
@@ -335,13 +341,14 @@ MyStringRetVal myStringSetFromInt(MyString *str, int n)
 	freeCString(str);
 	// parse int to Cstring and assign reference to string, then zero the counter;
 	str->actualString = (intToCString(n));
-	str->length = cStringCheckLength(str->actualString);
-	refReset(str);
 	//check that the procedure was succesfull
 	if (str->actualString == NULL)
 	{
 		return MYSTRING_ERROR;
 	}
+
+	str->length = cStringCheckLength(str->actualString);
+	refReset(str);
 	return MYSTRING_SUCCESS;
 
 }
@@ -358,7 +365,7 @@ double power(int base, int factor)
 
 int charToInt(char c)
 {
-	return (int)c-INT_ASCII_DIFF;
+	return (int) c - INT_ASCII_DIFF;
 }
 
 /**
@@ -388,7 +395,7 @@ int myStringToInt(const MyString *str)
 	{
 		if (str->actualString[i] > INT_ASCII_MAX || str->actualString[i] < INT_ASCII_DIFF)
 		{
-			tempSum = MYSTRING_ERROR;
+			if (i == 0) tempSum = MYSTRING_ERROR;
 			return tempSum;
 		}
 		tempSum += (charToInt(str->actualString[i]) * (power(DECIMAL_SYSTEM, str->length - i)));
@@ -506,7 +513,7 @@ int myStringCustomCompare(const MyString *str1, const MyString *str2,
 }
 
 
-int defaultComparator(const char *a, const char *b)
+static int defaultComparator(const char *a, const char *b)
 {
 	return (int) *a - (int) *b;
 }
@@ -615,7 +622,7 @@ MyStringRetVal myStringWrite(const MyString *str, FILE *stream)
  *
  * RETURN VALUE:none
   */
-void myStringCוstomSort(MyString *arr, int len, int (*comp)(const char *a, const char *b))
+void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, const char *b))
 {
 
 	int cmpfunc(const void *a, const void *b)
@@ -626,7 +633,7 @@ void myStringCוstomSort(MyString *arr, int len, int (*comp)(const char *a, cons
 	}
 
 
-	qsort(arr, (size_t) len, sizeof(MyString), cmpfunc);
+	qsort(arr, (size_t) len, sizeof(MyString*), cmpfunc);
 
 }
 
@@ -637,7 +644,7 @@ void myStringCוstomSort(MyString *arr, int len, int (*comp)(const char *a, cons
  *
  * RETURN VALUE: none
   */
-void myStringSort(MyString *arr, int len)
+void myStringSort(MyString *arr[], int len)
 {
 
 	int cmpfunc(const void *a, const void *b)
@@ -647,6 +654,6 @@ void myStringSort(MyString *arr, int len)
 		return result;
 	}
 
-	qsort(arr, (size_t) len, sizeof(MyString), cmpfunc);
+	qsort(arr, (size_t) len, sizeof(MyString*), myStringCompare);
 
 }
