@@ -535,7 +535,18 @@ unsigned long myStringLen(const MyString *str1)
 MyStringRetVal myStringWrite(const MyString *str, FILE *stream)
 {
 
+
+	if (stream == NULL) return MYSTRING_ERROR;
+	fprintf(stream, "\t%50s\n", "Here layeth the contents of a String Struct");
+	fprintf(stream, "\t%50.40s%-10i\n", "It's length is: ",str->length);
+	fprintf(stream, "\t%45.40s%10i%5s\n", "It has been referenced ",*str->refCount, " times.");
+	fprintf(stream, "\t%50s\n", "And it's content is:");
+	fprintf(stream, "\t%50s\n", str->actualString);
+
+	fclose(stream);
 }
+
+
 
 /**
  * @brief sort an array of MyString pointers
@@ -545,8 +556,20 @@ MyStringRetVal myStringWrite(const MyString *str, FILE *stream)
  *
  * RETURN VALUE:none
   */
-//TODO insert myStringCoustomSort signature here
+void myStringCoustomSort(MyString *arr, int len, int (*comp)(const char *a, const char *b))
+{
 
+	int cmpfunc(const void *a, const void *b)
+	{
+		int result = myStringCustomCompare((MyString *) a, (MyString *) b, comp);
+		if (result == MYSTRING_ERROR) return NULL;
+		return result;
+	}
+
+
+	qsort(arr, (size_t) len, sizeof(MyString), cmpfunc);
+
+}
 /**
  * @brief sorts an array of MyString pointers according to the default comparison (like in myStringCompare)
  * @param arr
