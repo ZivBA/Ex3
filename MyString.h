@@ -199,8 +199,8 @@ int myStringCompare(const MyString *str1, const MyString *str2);
  * 	If strings cannot be compared, the return value should be MYSTR_ERROR_CODE
  */
 
- //TODO insert myStringCustomCompare signature here
- 
+int myStringCustomCompare(const MyString *str1, const MyString *str2,
+                          int (*comp)(const char *a, const char *b));
 
 
 /**
@@ -269,5 +269,11 @@ void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, con
 void myStringSort(MyString *arr[], int len);
  
 
+/**
+ * this method swaps the refcounter and actualString pointers between two strings.
+ * in O(1).
+ * since you gave no method description, i'm assuming this is what you meant.
+ */
+void myStringSwap(MyString *str1, MyString *str2);
 #endif // _MYSTRING_H
 

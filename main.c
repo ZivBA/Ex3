@@ -1,9 +1,8 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include "mystring_demo.h"
 #include "MyString.h"
 
-int main()
+int main2()
 {
 
 
@@ -21,6 +20,9 @@ int main()
 	myStringSetFromCString(arr[2],"Fuck this So Annoying");
 	myStringSetFromCString(arr[3],"Fuck I cant stand this");
 	myStringSetFromCString(arr[4],"Fuck me.");
+
+	printf("%lu\n", myStringMemUsage(arr[0]));
+
 	printf("comparing 2 strings: %d\n",myStringCompare(arr[2],arr[4]));
 	for (int i = 0; i < 5; ++i)
 	{
@@ -35,7 +37,6 @@ int main()
 		char* curString = myStringToCString(arr[i]);
 		printf("string num %i is: %s\n",i,curString);
 	}
-
 
 /*
 

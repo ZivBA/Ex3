@@ -49,15 +49,20 @@ typedef struct _MyString
  *
  * RETURN VALUE:
  * @return a pointer to the new string, or NULL if the allocation failed.
+ *
+ * Time Complexity: given that malloc/realloc time complexity is non-deterministic, i'll treat it as O(MALL),
+ * here and throughout this file.
+ * Total complexity for myStringAlloc: O(1) + O(MALL).
+ *
  */
 MyString *myStringAlloc()
 {
 
 	MyString *temp = malloc(sizeof(MyString));
-	temp->actualString = malloc(sizeof(char *));
+	temp->actualString = malloc(sizeof(char));
 	*temp->actualString = '\0';
 	temp->length = 0;
-	temp->refCount = malloc(sizeof(int *));
+	temp->refCount = malloc(sizeof(int));
 	*temp->refCount = 0;
 	return temp;
 }
@@ -80,7 +85,8 @@ static void refCountIncrement(MyString *str)
 }
 
 /**
- * helper method to free a cString only if it has no copies.
+ * helper method to free a cString only iff it has no copies.
+ * Time Complexity: O(1)
  */
 static void freeCString(MyString *pString)
 {
@@ -97,10 +103,10 @@ static void freeCString(MyString *pString)
 
 /**
  * @brief **ref-Counting** Frees the memory and resources allocated to str.
- *        If reference counter is at 0 then all copies are freed and this string can be freed as well.
- *        otherwise decrement the refCount and free the struct itself.
+ *
  * @param str the MyString to free.
  * If str is NULL, no operation is performed.
+ * Time Complexity: I'm assuming that a FREE operation is O(1), so total complexity is O(1).
  */
 void myStringFree(MyString *str)
 {
@@ -108,6 +114,9 @@ void myStringFree(MyString *str)
 	free(str);
 }
 
+/**
+ * helper method that checks if a MyString object is null, or if it's contents is.
+ */
 static bool isStringNull(const MyString *str)
 {
 	return (str == NULL || str->actualString == NULL);
@@ -120,6 +129,8 @@ static bool isStringNull(const MyString *str)
  * @param str the MyString to clone.
  * RETURN VALUE:
  *   @return a pointer to the new string, or NULL if the allocation failed.
+ *
+ * Time Complexity: O(1) + O(MALL)
  */
 MyString *myStringClone(const MyString *str)
 {
@@ -138,6 +149,11 @@ MyString *myStringClone(const MyString *str)
 	return temp;
 }
 
+
+/**
+ * helper method that reallocates memory for a new reference counter and sets it to zero.
+ * O(1) + O(MALL)
+ */
 static void refReset(MyString *str)
 {
 	str->refCount = malloc(sizeof(int));
@@ -151,6 +167,8 @@ static void refReset(MyString *str)
  * @param other the MyString to set from
  * RETURN VALUE:
  *  @return MYSTRING_SUCCESS on success, MYSTRING_ERROR on failure.
+ *
+ *  Time Complexity: O(1) + O(MALL)
  */
 MyStringRetVal myStringSetFromMyString(MyString *str, const MyString *other)
 {
@@ -172,7 +190,9 @@ MyStringRetVal myStringSetFromMyString(MyString *str, const MyString *other)
 	return MYSTRING_SUCCESS;
 }
 
-
+/**
+ * helper method that checks if a cString is null;
+ */
 static bool cStringNullCheck(const char *cStringToCheck)
 {
 	return cStringToCheck == NULL;
@@ -185,7 +205,10 @@ static bool cStringNullCheck(const char *cStringToCheck)
  * @param str the MyString to filter
  * @param filt the filter
  * RETURN VALUE:
- *  @return MYSTRING_SUCCESS on success, MYSTRING_ERROR on failure. */
+ *  @return MYSTRING_SUCCESS on success, MYSTRING_ERROR on failure.
+ * Time Complexity: standard case- O(n) + O(MALL) where n is the number of chars in string.
+ *                  best case (null or empty string)- O(1) + O(MALL)
+ **/
 MyStringRetVal myStringFilter(MyString *str, bool (*filt)(const char *))
 {
 	// prep new string - alloc maximum size =old size, inject passing chars
@@ -225,7 +248,12 @@ MyStringRetVal myStringFilter(MyString *str, bool (*filt)(const char *))
 
 }
 
-int cStringCheckLength(const char *cString)
+/**
+ * helper method, counts the number of chars in a string.
+ * returns the... number of cars in a string.
+ * accepts a..... string.
+ */
+static int cStringCheckLength(const char *cString)
 {
 	if (cString == NULL) return -1;
 	int counter = 0;
@@ -250,6 +278,9 @@ int cStringCheckLength(const char *cString)
  * @param cString the C string to set from.
  * RETURN VALUE:
  *  @return MYSTRING_SUCCESS on success, MYSTRING_ERROR on failure.
+ *
+ *  Time Complexity: standard case: again, assuming all memory allocation/copying operations are roughly
+ *  constant time, then O(1) + O(MALL).
  **/
 
 MyStringRetVal myStringSetFromCString(MyString *str, const char *cString)
@@ -279,9 +310,14 @@ MyStringRetVal myStringSetFromCString(MyString *str, const char *cString)
 }
 
 
+/**
+ * helper method that gets a cString and it's length, and reverses the order of the chars.
+ * used for converting integer value to number string.
+ * O(n/2)
+ */
 static char *reverseCstring(char *tempNum, int i)
 {
-	for (int j = 0; j < i - 1; ++j)
+	for (int j = 0; j <= i-j - 1; ++j)
 	{
 
 		char tempChar;
@@ -294,6 +330,10 @@ static char *reverseCstring(char *tempNum, int i)
 	return tempNum;
 }
 
+/**
+ * helper method that gets an integer and returns a pointer to a cString with that value.
+ * O(n) + O(n/2) + O(MALL)
+ */
 static char *intToCString(int n)
 {
 	int i = 0;
@@ -303,21 +343,25 @@ static char *intToCString(int n)
 	{
 		return NULL;
 	}
+	// check if the number is negative, adding the neg-sign to the string.
 	if (n < 0)
 	{
 		tempNum[i] = NEGATIVE_SIGN;
 		// switch to positive int to prevent calculation issues with mod/floor.
-		n *= -1;
+		n = abs(n);
 		i++;
 	}
+	//iterate over digits by moding for the digit value and flooring to discard it.
 	for (; n != 0 && i < MAX_DIGITS_FOR_INT; ++i)
 	{
-		tempNum[i] = (char) (n % 10 + INT_ASCII_DIFF);
+		tempNum[i] = (char) (n % DECIMAL_SYSTEM + INT_ASCII_DIFF);
 		n /= DECIMAL_SYSTEM;
 
 	}
+	// create the actual string of length 'i'
 	char *temp = realloc(tempNum, i * sizeof(char));
-	if (*temp != *tempNum){
+	if (*temp != *tempNum)
+	{
 		printf(MALLOC_ERROR);
 		return NULL;
 	}
@@ -579,8 +623,12 @@ int myStringCustomEqual(const MyString *str1, const MyString *str2,
 unsigned long myStringMemUsage(const MyString *str1)
 {
 	unsigned long sumBytes = 0;
-	sumBytes += sizeof(MyString);
+	sumBytes += sizeof(*str1);
+	printf("sizeOf str1: %lu\n", sumBytes);
 	sumBytes += str1->length * sizeof(char);
+	printf("sizeOf str1+actual: %lu\n", sumBytes);
+	sumBytes += sizeof(*str1->refCount);
+	printf("sizeOf str1+actual+refcount: %lu\n", sumBytes);
 	return sumBytes;
 }
 
@@ -597,6 +645,8 @@ unsigned long myStringLen(const MyString *str1)
  *
  * RETURNS:
  *  @return MYSTRING_SUCCESS on success, MYSTRING_ERROR on failure.
+ *
+ *  Time complexity: O(fprintf * 5) + O(fclose). whatever those are. otherwise- O(1)?
  */
 MyStringRetVal myStringWrite(const MyString *str, FILE *stream)
 {
@@ -621,7 +671,12 @@ MyStringRetVal myStringWrite(const MyString *str, FILE *stream)
  * @param comparator custom comparator
  *
  * RETURN VALUE:none
-  */
+ *
+ * Time Complexity: O(qsort).
+ * from cplusplus.com: complexity- Unspecified, but quicksorts are generally linearithmic in num, on average,
+ * calling compar approximately num*log2(num) times.
+ * so.. maybe O(NlgN)?
+ * */
 void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, const char *b))
 {
 
@@ -633,7 +688,7 @@ void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, con
 	}
 
 
-	qsort(arr, (size_t) len, sizeof(MyString*), cmpfunc);
+	qsort(arr, (size_t) len, sizeof(MyString *), cmpfunc);
 
 }
 
@@ -643,17 +698,38 @@ void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, con
  * @param len
  *
  * RETURN VALUE: none
+ *
+ * Time Complexity: see above.
   */
 void myStringSort(MyString *arr[], int len)
 {
+	qsort(arr, (size_t) len, sizeof(MyString *), myStringCompare);
+}
 
-	int cmpfunc(const void *a, const void *b)
-	{
-		int result = myStringCustomCompare((MyString *) a, (MyString *) b, defaultComparator);
-		if (result == MYSTRING_ERROR) return '\0';
-		return result;
-	}
 
-	qsort(arr, (size_t) len, sizeof(MyString*), myStringCompare);
+/**
+ * this method swaps the refcounter and actualString pointers between two strings.
+ * in O(1).
+ * since you gave no method description, i'm assuming this is what you meant.
+ */
+void myStringSwap(MyString *str1, MyString *str2)
+{
+	//single temp general pointer.
+	void* tempPoint;
+	//swap strings
+	tempPoint = str1->actualString;
+	str1->actualString = str2->actualString;
+	str2->actualString = tempPoint;
+	//swap references
+	tempPoint = str1->refCount;
+	str1->refCount = str2->refCount;
+	str2->refCount = tempPoint;
+	//swap lengths
+	*((int*)tempPoint) = str1->length;
+	str1->length = str2->length;
+	str2->length = *((int*)tempPoint);
+
+	//and done.
+
 
 }
