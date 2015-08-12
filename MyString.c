@@ -111,7 +111,7 @@ MyString *myStringAlloc()
 /**
  * helper method to decrease the reference counter.
  */
-static void refCountDecrement(MyString *str)
+inline static void refCountDecrement(MyString *str)
 {
 	*str->refCount -= 1;
 }
@@ -119,7 +119,7 @@ static void refCountDecrement(MyString *str)
 /**
  * helper method to increase the reference counter.
  */
-static void refCountIncrement(MyString *str)
+inline static void refCountIncrement(MyString *str)
 {
 	*str->refCount += 1;
 }
@@ -157,7 +157,7 @@ void myStringFree(MyString *str)
 /**
  * helper method that checks if a MyString object is null, or if it's contents is.
  */
-static bool isStringNull(const MyString *str)
+inline static bool isStringNull(const MyString *str)
 {
 	return (str == NULL || str->actualString == NULL);
 }
@@ -233,7 +233,7 @@ MyStringRetVal myStringSetFromMyString(MyString *str, const MyString *other)
 /**
  * helper method that checks if a cString is null;
  */
-static bool cStringNullCheck(const char *cStringToCheck)
+inline static bool cStringNullCheck(const char *cStringToCheck)
 {
 	return cStringToCheck == NULL;
 }
@@ -450,7 +450,7 @@ double power(int base, int factor)
 	return sum;
 }
 
-int charToInt(char c)
+inline int charToInt(char c)
 {
 	return (int) c - INT_ASCII_DIFF;
 }
@@ -600,7 +600,7 @@ int myStringCustomCompare(const MyString *str1, const MyString *str2,
 }
 
 
-static int defaultComparator(const char *a, const char *b)
+inline static int defaultComparator(const char *a, const char *b)
 {
 	return (int) *a - (int) *b;
 }
@@ -617,7 +617,7 @@ static int defaultComparator(const char *a, const char *b)
  * 	And a value less than zero indicates the opposite.
  * 	If strings cannot be compared, the return value should be MYSTR_ERROR_CODE
  */
-int myStringCompare(const MyString *str1, const MyString *str2)
+inline int myStringCompare(const MyString *str1, const MyString *str2)
 {
 	//utilize the more powerful customCompare with a default comparator macro.
 	return myStringCustomCompare(str1, str2, defaultComparator);
@@ -636,7 +636,7 @@ int myStringCompare(const MyString *str1, const MyString *str2)
  * 	A greater than zero value indicates that the strings are equal.
  * 	If strings cannot be compared, the return value should be MYSTR_ERROR_CODE
   */
-int myStringEqual(const MyString *str1, const MyString *str2)
+inline int myStringEqual(const MyString *str1, const MyString *str2)
 {
 	return myStringCompare(str1, str2) == COMP_EQUAL ? COMP_TRUE : COMP_FALSE;
 }
@@ -654,7 +654,7 @@ int myStringEqual(const MyString *str1, const MyString *str2)
  * 	A greater than zero value indicates that the strings are equal.
  * 	If string cannot be compared, the return value should be MYSTR_ERROR_CODE
  */
-int myStringCustomEqual(const MyString *str1, const MyString *str2,
+inline int myStringCustomEqual(const MyString *str1, const MyString *str2,
                         int (*comp)(const char *a, const char *b))
 {
 	return myStringCustomCompare(str1, str2, comp) == COMP_EQUAL ? COMP_TRUE : COMP_FALSE;
@@ -678,7 +678,7 @@ unsigned long myStringMemUsage(const MyString *str1)
 /**
  * @return the length of the string in str1.
  */
-unsigned long myStringLen(const MyString *str1)
+inline unsigned long myStringLen(const MyString *str1)
 {
 	return (unsigned long) str1->length;
 }
@@ -744,7 +744,7 @@ void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, con
  *
  * Time Complexity: see above.
   */
-void myStringSort(MyString *arr[], int len)
+inline void myStringSort(MyString *arr[], int len)
 {
 	qsort(arr, (size_t) len, sizeof(MyString *), myStringCompare);
 }
