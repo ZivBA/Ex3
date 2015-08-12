@@ -17,16 +17,28 @@
  * to ensure all structs know how many references are made to a string, they all share the address of the counter as well.
  * the lenght is not shared since a pointer location is larger than an int, and requires less updates than a refCounter.
  * 
- * **** uses of malloc/realloc and methods to save on those ****
- * since i chose to use ref-counting this meant that memory allocations are much fewer in general.
+ * **** uses of malloc/realloc and ways to save on those ****
+ * since i chose to use ref-counting this meant that memory allocations are made only when changing a string to a
+ * new value, as opposed to an assignment from another string.
+ * 
  * the places where i used malloc:
- * myStringAlloc() 	 	
- * refReset() :			
- * myStringFilter() :		
- * myStringSetFromCString():	
- * intToCString() :		
+ * myStringAlloc() : 	 	obviously needed to allocate memory for a struct as well as for default string and recount
+ * refReset() :			allocate a new integer for reference counting.
+ * myStringFilter() :		allocate new memory segment for the filtered string.
+ * myStringSetFromCString():	allocate memory for the size of a new string for the struct
+ * myStringSetFromInt():	allocate memory for the new string
+ * myStringToCString():		allocate memory for a copy of the existing string 
+ * myStringCat():		allocate more memory for the concatenated string.
+ * myStringCatTo():		allocate memory for the concated string
  * 
+ * **** special design decisions ****
+ * in the customSort method, i created an inner method that is defined at runtime according to the input argument
+ * of the outer method. customSort gets a comparator, and the inner method wraps customCompare by providing the 
+ * comparator passed to customSort as an argument to customCompare. this wrapper method is then passed to qsort for 
+ * array sorting.
  * 
+ * i dont feel that i have written any specal algorithms worth mentioning, all helper methods i wrote were written
+ * to avoid using 
  * 
  **/
 
