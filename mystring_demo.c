@@ -54,11 +54,11 @@ void test2()
     myStringCat(high, low);
 	if (myStringToInt(high) != -1054543)
 	{
-        exitBad(1);
+        exitBad(2);
     }
-	
 
-    // clean up. 
+
+    // clean up.
     myStringFree(high);
     myStringFree(low);
 }

@@ -7,9 +7,9 @@
  * ****  The struct that i chose and it's members: ****
  * See the struct defined below. it's members are:
  * char *actualString 	: a pointer to a C String. points to some memory location 
- * 			holding the first char of C string
+ * 						holding the first char of C string
  * int *refCounter : 	a pointer to some integer location, holding the number of references to the actual string.
- * int length : 	an actual int holding the length of the string.
+ * int length : 		an actual int holding the length of the string.
  * 
  * i chose this struct to allow for reference counting as suggested by the bonus assignment instructions.
  * in this fashion, no MyString struct holds an actual string, rather a pointer to a pre-existing string 
@@ -30,7 +30,19 @@
  * myStringToCString():		allocate memory for a copy of the existing string 
  * myStringCat():		allocate more memory for the concatenated string.
  * myStringCatTo():		allocate memory for the concated string
- * 
+ *
+ * we were asked to use malloc/realloc intelligently. for example, not to reallocate memory for a change of 1 byte.
+ * however, the malloc implementation is already intelligent enough to not make changes if the resulting memory
+ * block is the same size as the old memory block (i.e. changes that are less than 16 bytes).
+ * "Section 7.20.3 of C99 states The pointer returned if the allocation succeeds is suitably aligned so that it may be
+ * assigned to a pointer to any type of object."
+ * and:
+ * "C99 7.20.3.4 §4: The realloc function returns a pointer to the new object (which may have the same
+ * value as a pointer to the old object)"
+ *
+ * thus, for changes smaller a 16 byte "word", realloc will not make any changes, and will return the same pointer
+ * in O(1) efficiency, basically making any optimization attempts on my behalf rather pointless.
+ *
  * **** special design decisions ****
  * in the customSort method, i created an inner method that is defined at runtime according to the input argument
  * of the outer method. customSort gets a comparator, and the inner method wraps customCompare by providing the 
@@ -38,7 +50,7 @@
  * array sorting.
  * 
  * i dont feel that i have written any specal algorithms worth mentioning, all helper methods i wrote were written
- * to avoid using 
+ * to avoid using methods from external libraries, except 'power' which was written since "pow" didnt work for me.
  * 
  **/
 
@@ -357,10 +369,12 @@ MyStringRetVal myStringSetFromCString(MyString *str, const char *cString)
  */
 static char *reverseCstring(char *tempNum, int i)
 {
-	for (int j = 0; j <= i-j - 1; ++j)
+	for (int j = 0; j <= i-j -1; ++j)
 	{
+		if (tempNum[j] == NEGATIVE_SIGN) i++,j++;
 
 		char tempChar;
+
 
 		tempChar = tempNum[j];
 		tempNum[j] = tempNum[i - j - 1];
@@ -450,7 +464,7 @@ double power(int base, int factor)
 	return sum;
 }
 
-inline int charToInt(char c)
+int charToInt(char c)
 {
 	return (int) c - INT_ASCII_DIFF;
 }
@@ -482,7 +496,7 @@ int myStringToInt(const MyString *str)
 	{
 		if (str->actualString[i] > INT_ASCII_MAX || str->actualString[i] < INT_ASCII_DIFF)
 		{
-			if (i == 0) tempSum = MYSTRING_ERROR;
+			if (i == 0) tempSum = MYSTR_ERROR_CODE;
 			return tempSum;
 		}
 		tempSum += (charToInt(str->actualString[i]) * (power(DECIMAL_SYSTEM, str->length - i)));
@@ -577,7 +591,7 @@ int myStringCustomCompare(const MyString *str1, const MyString *str2,
 {
 
 	// check if both strings are valid.
-	if (isStringNull(str1) || isStringNull(str2)) return MYSTRING_ERROR;
+	if (isStringNull(str1) || isStringNull(str2)) return MYSTR_ERROR_CODE;
 
 	// check if both strings are referencing the same CString.
 	if (str1->actualString == str2->actualString) return COMP_EQUAL;
@@ -638,7 +652,8 @@ inline int myStringCompare(const MyString *str1, const MyString *str2)
   */
 inline int myStringEqual(const MyString *str1, const MyString *str2)
 {
-	return myStringCompare(str1, str2) == COMP_EQUAL ? COMP_TRUE : COMP_FALSE;
+	int result = myStringCompare(str1, str2);
+	return result == MYSTR_ERROR_CODE  ? MYSTR_ERROR_CODE : (result == COMP_EQUAL ? COMP_TRUE : COMP_FALSE);
 }
 
 
@@ -657,7 +672,8 @@ inline int myStringEqual(const MyString *str1, const MyString *str2)
 inline int myStringCustomEqual(const MyString *str1, const MyString *str2,
                         int (*comp)(const char *a, const char *b))
 {
-	return myStringCustomCompare(str1, str2, comp) == COMP_EQUAL ? COMP_TRUE : COMP_FALSE;
+	int result = myStringCustomCompare(str1, str2, comp);
+	return result == MYSTR_ERROR_CODE ? MYSTR_ERROR_CODE : (result ==COMP_EQUAL ? COMP_TRUE : COMP_FALSE);
 }
 
 /**
@@ -746,7 +762,7 @@ void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, con
   */
 inline void myStringSort(MyString *arr[], int len)
 {
-	qsort(arr, (size_t) len, sizeof(MyString *), myStringCompare);
+	qsort(arr, (size_t) len, sizeof(MyString *), (__compar_fn_t) myStringCompare);
 }
 
 
@@ -774,5 +790,11 @@ void myStringSwap(MyString *str1, MyString *str2)
 
 	//and done.
 
-
 }
+
+#ifndef NDEBUG
+int main(){
+	printf("running tests\n");
+}
+
+#endif

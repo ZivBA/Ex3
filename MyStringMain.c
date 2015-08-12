@@ -33,4 +33,5 @@ int main() {
 	printf("%s is smaller than %s\n",myStringToCString(stringA),myStringToCString(stringB));
 
 
+
 }
