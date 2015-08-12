@@ -54,7 +54,6 @@
  * 
  **/
 
-
 #include <stdlib.h>
 #include <string.h>
 #include "MyString.h"
@@ -369,13 +368,12 @@ MyStringRetVal myStringSetFromCString(MyString *str, const char *cString)
  */
 static char *reverseCstring(char *tempNum, int i)
 {
-	for (int j = 0; j <= i-j -1; ++j)
+	for (int j = 0; j <= i-j - 1; ++j)
 	{
-		if (tempNum[j] == NEGATIVE_SIGN) i++,j++;
 
 		char tempChar;
 
-
+		if (tempNum[j]==NEGATIVE_SIGN) j++, i++; // if neg, shift one position right before reversing.
 		tempChar = tempNum[j];
 		tempNum[j] = tempNum[i - j - 1];
 		tempNum[i - j - 1] = tempChar;
@@ -453,8 +451,11 @@ MyStringRetVal myStringSetFromInt(MyString *str, int n)
 	return MYSTRING_SUCCESS;
 
 }
-
-double power(int base, int factor)
+/**
+ * helper method to calculate power, since for some reason importing math.h didnt make pow() available.
+ * complexity is o(factor), and bounded by 9 since that's the largest 10 base factor an integer supports.
+ */
+static double power(int base, int factor)
 {
 	int sum = 1;
 	for (int i = 1; i < factor; ++i)
@@ -464,7 +465,10 @@ double power(int base, int factor)
 	return sum;
 }
 
-int charToInt(char c)
+/**
+ * get char (representing a valid number) return int with that value.
+ */
+static int charToInt(char c)
 {
 	return (int) c - INT_ASCII_DIFF;
 }
@@ -474,8 +478,15 @@ int charToInt(char c)
  * 	If str cannot be parsed as an integer,
  * 	the return value should be MYSTR_ERROR_CODE
  * 	NOTE: positive and negative integers should be supported.
+ * 	Assume the string is a valid int, as answered by Levi Offen in the exercise forum.
+ * 	under this assumption i limit the number of digits to 10 + optional minus sign.
+ * 	also if a non-supported charachter is encountered, an error is returned regardless of whether we
+ * 	managed to read some chars before.
+ *
  * @param str the MyString
  * @return an integer
+ *
+ * Time complexity: O(n) (power calculations are at most sum(1to9)=O(n), as n is bounded by 10)
  */
 int myStringToInt(const MyString *str)
 {
@@ -514,6 +525,8 @@ int myStringToInt(const MyString *str)
  * @param str the MyString
  * RETURN VALUE:
  *  @return the new string, or NULL if the allocation failed.
+ *
+ *  Time complexity: O(MALL)
  */
 char *myStringToCString(const MyString *str)
 {
@@ -529,6 +542,8 @@ char *myStringToCString(const MyString *str)
  * @param src the MyString to append
  * RETURN VALUE:
  *  @return MYSTRING_SUCCESS on success, MYSTRING_ERROR on failure.
+ *
+ *  Time Complexity: O(MALL) + O(1).
  */
 MyStringRetVal myStringCat(MyString *dest, const MyString *src)
 {
@@ -564,6 +579,8 @@ MyStringRetVal myStringCat(MyString *dest, const MyString *src)
  * @param result
  * RETURN VALUE:
  *  @return MYSTRING_SUCCESS on success, MYSTRING_ERROR on failure.
+ *
+ *  Time Complexity: O(MALL) + O(1)
  */
 MyStringRetVal myStringCatTo(const MyString *str1, const MyString *str2, MyString *result)
 {
@@ -584,6 +601,8 @@ MyStringRetVal myStringCatTo(const MyString *str1, const MyString *str2, MyStrin
  * 	A value greater than zero indicates that the first MyString is bigger according to the comparator.
  * 	And a value less than zero indicates the opposite.
  * 	If strings cannot be compared, the return value should be MYSTR_ERROR_CODE
+ *
+ * 	Time Complexity: best case O(1), worst case O(min(n,m)) where n,m are lengths of the strings 1,2.
  */
 
 int myStringCustomCompare(const MyString *str1, const MyString *str2,
@@ -613,8 +632,12 @@ int myStringCustomCompare(const MyString *str1, const MyString *str2,
 
 }
 
-
-inline static int defaultComparator(const char *a, const char *b)
+/**
+ * helper method.
+ * default comparator used by compare/equal methods
+ * returns the diff betwen the integer values of two chars.
+ */
+static int defaultComparator(const char *a, const char *b)
 {
 	return (int) *a - (int) *b;
 }
@@ -630,8 +653,11 @@ inline static int defaultComparator(const char *a, const char *b)
  * 	A value greater than zero indicates that the first character that does not match has a greater ASCII value in str1 than in str2;
  * 	And a value less than zero indicates the opposite.
  * 	If strings cannot be compared, the return value should be MYSTR_ERROR_CODE
+ *
+ * 	Time Complexity: see myStringCustomCompare.
+ *
  */
-inline int myStringCompare(const MyString *str1, const MyString *str2)
+int myStringCompare(const MyString *str1, const MyString *str2)
 {
 	//utilize the more powerful customCompare with a default comparator macro.
 	return myStringCustomCompare(str1, str2, defaultComparator);
@@ -649,8 +675,11 @@ inline int myStringCompare(const MyString *str1, const MyString *str2)
  * 	A zero value indicates that the strings are not equal.
  * 	A greater than zero value indicates that the strings are equal.
  * 	If strings cannot be compared, the return value should be MYSTR_ERROR_CODE
+ *
+ * 	Time Complexity: see myStringCompare
+ *
   */
-inline int myStringEqual(const MyString *str1, const MyString *str2)
+int myStringEqual(const MyString *str1, const MyString *str2)
 {
 	int result = myStringCompare(str1, str2);
 	return result == MYSTR_ERROR_CODE  ? MYSTR_ERROR_CODE : (result == COMP_EQUAL ? COMP_TRUE : COMP_FALSE);
@@ -668,8 +697,10 @@ inline int myStringEqual(const MyString *str1, const MyString *str2)
  * 	A zero value indicates that the strings are not equal.
  * 	A greater than zero value indicates that the strings are equal.
  * 	If string cannot be compared, the return value should be MYSTR_ERROR_CODE
+ *
+ * 	Time Complexity: see myStringCustomCompare
  */
-inline int myStringCustomEqual(const MyString *str1, const MyString *str2,
+int myStringCustomEqual(const MyString *str1, const MyString *str2,
                         int (*comp)(const char *a, const char *b))
 {
 	int result = myStringCustomCompare(str1, str2, comp);
@@ -677,24 +708,25 @@ inline int myStringCustomEqual(const MyString *str1, const MyString *str2,
 }
 
 /**
- * @return the amount of memory (all the memory that used by the MyString object itself and its allocations), in bytes, allocated to str1.
+ * @return the amount of memory (all the memory that used by the MyString object itself and its allocations),
+ * in bytes, allocated to str1.
+ * Time Complexity: O(1)
  */
 unsigned long myStringMemUsage(const MyString *str1)
 {
 	unsigned long sumBytes = 0;
 	sumBytes += sizeof(*str1);
-	printf("sizeOf str1: %lu\n", sumBytes);
 	sumBytes += str1->length * sizeof(char);
-	printf("sizeOf str1+actual: %lu\n", sumBytes);
 	sumBytes += sizeof(*str1->refCount);
-	printf("sizeOf str1+actual+refcount: %lu\n", sumBytes);
 	return sumBytes;
 }
 
 /**
  * @return the length of the string in str1.
+ *
+ * O(1)...
  */
-inline unsigned long myStringLen(const MyString *str1)
+unsigned long myStringLen(const MyString *str1)
 {
 	return (unsigned long) str1->length;
 }
@@ -758,11 +790,11 @@ void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, con
  *
  * RETURN VALUE: none
  *
- * Time Complexity: see above.
+ * Time Complexity: see myStringCustomSort.
   */
-inline void myStringSort(MyString *arr[], int len)
+void myStringSort(MyString *arr[], int len)
 {
-	qsort(arr, (size_t) len, sizeof(MyString *), (__compar_fn_t) myStringCompare);
+	qsort(arr, (size_t) len, sizeof(MyString *), myStringCompare);
 }
 
 

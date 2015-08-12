@@ -42,7 +42,7 @@ void test1()
  */
 void test2()
 {
-    int first = -1054, second = 543;
+    int first = -105, second = 543;
 
     // This time, we check for errors.
     MyString * high = NULL;
@@ -52,7 +52,7 @@ void test2()
 	myStringSetFromInt(high, first);
 	myStringSetFromInt(low, second);
     myStringCat(high, low);
-	if (myStringToInt(high) != -1054543)
+	if (myStringToInt(high) != -105543)
 	{
         exitBad(2);
     }
