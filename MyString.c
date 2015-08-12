@@ -2,6 +2,34 @@
 // Created by ziv on 8/9/15.
 //
 
+/**
+ *Answers to questions from exercise description:
+ * ****  The struct that i chose and it's members: ****
+ * See the struct defined below. it's members are:
+ * char *actualString 	: a pointer to a C String. points to some memory location 
+ * 			holding the first char of C string
+ * int *refCounter : 	a pointer to some integer location, holding the number of references to the actual string.
+ * int length : 	an actual int holding the length of the string.
+ * 
+ * i chose this struct to allow for reference counting as suggested by the bonus assignment instructions.
+ * in this fashion, no MyString struct holds an actual string, rather a pointer to a pre-existing string 
+ * in the memory. to copy from one MyString to another, a copy of the pointer address is sufficient (always O(1)).
+ * to ensure all structs know how many references are made to a string, they all share the address of the counter as well.
+ * the lenght is not shared since a pointer location is larger than an int, and requires less updates than a refCounter.
+ * 
+ * **** uses of malloc/realloc and methods to save on those ****
+ * since i chose to use ref-counting this meant that memory allocations are much fewer in general.
+ * the places where i used malloc:
+ * myStringAlloc() 	 	
+ * refReset() :			
+ * myStringFilter() :		
+ * myStringSetFromCString():	
+ * intToCString() :		
+ * 
+ * 
+ * 
+ **/
+
 
 #include <stdlib.h>
 #include <string.h>
@@ -378,6 +406,9 @@ static char *intToCString(int n)
  * @param n the int to set from.
  * RETURN VALUE:
  *  @return MYSTRING_SUCCESS on success, MYSTRING_ERROR on failure.
+ * 
+ * Time Complexity: O(MALL) + O(n) where n is the length in digits of the int.
+ * 
  */
 MyStringRetVal myStringSetFromInt(MyString *str, int n)
 {
