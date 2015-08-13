@@ -8,10 +8,9 @@
 #include "MyString.h"
 #include "mystring_demo.h"
 
-int main() {
+int main2() {
 
-	test1();
-	test2();
+
 
 	char *tempString = malloc(sizeof(char));
 	MyString *stringA = myStringAlloc();
@@ -32,6 +31,8 @@ int main() {
 	if (result > 0) myStringSwap(stringA,stringB);
 	printf("%s is smaller than %s\n",myStringToCString(stringA),myStringToCString(stringB));
 
+
+	return 0;
 
 
 }

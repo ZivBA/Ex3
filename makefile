@@ -13,4 +13,4 @@ tests:
 	./MyString
 
 clean:
-	rm *.o &&
+	rm *.o
