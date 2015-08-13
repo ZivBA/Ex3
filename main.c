@@ -15,11 +15,11 @@ int main2()
 	arr[2] = myStringAlloc();
 	arr[3] = myStringAlloc();
 	arr[4] = myStringAlloc();
-	myStringSetFromCString(arr[0],"Fuck this FUCKIN FUCK");
-	myStringSetFromCString(arr[1],"Oh My GOD i HATE C");
-	myStringSetFromCString(arr[2],"Fuck this So Annoying");
-	myStringSetFromCString(arr[3],"Fuck I cant stand this");
-	myStringSetFromCString(arr[4],"Fuck me.");
+	myStringSetFromCString(&arr[0],"Fuck this FUCKIN FUCK");
+	myStringSetFromCString(&arr[1],"Oh My GOD i HATE C");
+	myStringSetFromCString(&arr[2],"Fuck this So Annoying");
+	myStringSetFromCString(&arr[3],"Fuck I cant stand this");
+	myStringSetFromCString(&arr[4],"Fuck me.");
 
 	printf("%lu\n", myStringMemUsage(arr[0]));
 

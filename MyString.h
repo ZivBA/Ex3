@@ -231,7 +231,7 @@ int myStringEqual(const MyString *str1, const MyString *str2);
 int myStringCustomEqual(const MyString *str1, const MyString *str2,
                         int (*comp)(const char *a, const char *b));
 
-/**
+/***
  * @return the amount of memory (all the memory that used by the MyString object itself and its allocations), in bytes, allocated to str1.
  */
 unsigned long myStringMemUsage(const MyString *str1);
@@ -257,7 +257,7 @@ MyStringRetVal myStringWrite(const MyString *str, FILE *stream);
  * 
  * RETURN VALUE:none
   */
-void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, const char *b));
+void myStringCustomSort(MyString **arr, int len, int (*comp)(const char *a, const char *b));
  
 /**
  * @brief sorts an array of MyString pointers according to the default comparison (like in myStringCompare)
@@ -266,7 +266,7 @@ void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, con
  *
  * RETURN VALUE: none
   */
-void myStringSort(MyString *arr[], int len);
+void myStringSort(MyString **arr, int len);
  
 
 /**

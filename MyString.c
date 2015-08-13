@@ -308,14 +308,14 @@ MyStringRetVal myStringFilter(MyString *str, bool (*filt)(const char *))
 static int cStringCheckLength(const char *cString)
 {
 	if (cString == NULL) return -1;
-	int counter = 0;
+	int counter = 1;
 	char curChar = *cString;
 	while (curChar != '\0')
 	{
 		curChar = *(cString + (sizeof(char) * counter));
 		counter++;
 	}
-	return --counter;
+	return counter;
 }
 
 /**
@@ -341,6 +341,7 @@ MyStringRetVal myStringSetFromCString(MyString *str, const char *cString)
 	if (cStringNullCheck(cString)) return MYSTRING_ERROR;
 
 	int length = cStringCheckLength(cString);
+
 	char *copyOfCstring = malloc(length * sizeof(char));
 
 	//check memory alloc
@@ -351,13 +352,13 @@ MyStringRetVal myStringSetFromCString(MyString *str, const char *cString)
 	}
 
 	memcpy(copyOfCstring, cString, length * sizeof(char));
-
+	copyOfCstring[length]='\0';
 	//free old Cstring then reassign the pointer to new string.
 	freeCString(str);
 	str->actualString = copyOfCstring;
 	refReset(str);
 
-	str->length = length;
+	str->length = length-1;
 	return MYSTRING_SUCCESS;
 }
 
@@ -369,12 +370,12 @@ MyStringRetVal myStringSetFromCString(MyString *str, const char *cString)
  */
 static char *reverseCstring(char *tempNum, int i)
 {
-	for (int j = 0; j <= i-j - 1; ++j)
+	for (int j = 0; j <= i - j - 1; ++j)
 	{
 
 		char tempChar;
 
-		if (tempNum[j]==NEGATIVE_SIGN) j++, i++; // if neg, shift one position right before reversing.
+		if (tempNum[j] == NEGATIVE_SIGN) j++, i++; // if neg, shift one position right before reversing.
 		tempChar = tempNum[j];
 		tempNum[j] = tempNum[i - j - 1];
 		tempNum[i - j - 1] = tempChar;
@@ -452,6 +453,7 @@ MyStringRetVal myStringSetFromInt(MyString *str, int n)
 	return MYSTRING_SUCCESS;
 
 }
+
 /**
  * helper method to calculate power, since for some reason importing math.h didnt make pow() available.
  * complexity is o(factor), and bounded by 9 since that's the largest 10 base factor an integer supports.
@@ -682,8 +684,8 @@ int myStringCompare(const MyString *str1, const MyString *str2)
   */
 int myStringEqual(const MyString *str1, const MyString *str2)
 {
-    int result = myStringCompare(str1, str2);
-    return result == MYSTR_ERROR_CODE ? MYSTR_ERROR_CODE : (result == COMP_EQUAL ? COMP_TRUE : COMP_FALSE);
+	int result = myStringCompare(str1, str2);
+	return result == MYSTR_ERROR_CODE ? MYSTR_ERROR_CODE : (result == COMP_EQUAL ? COMP_TRUE : COMP_FALSE);
 }
 
 
@@ -705,7 +707,7 @@ int myStringCustomEqual(const MyString *str1, const MyString *str2,
                         int (*comp)(const char *a, const char *b))
 {
 	int result = myStringCustomCompare(str1, str2, comp);
-	return result == MYSTR_ERROR_CODE ? MYSTR_ERROR_CODE : (result ==COMP_EQUAL ? COMP_TRUE : COMP_FALSE);
+	return result == MYSTR_ERROR_CODE ? MYSTR_ERROR_CODE : (result == COMP_EQUAL ? COMP_TRUE : COMP_FALSE);
 }
 
 /**
@@ -769,13 +771,13 @@ MyStringRetVal myStringWrite(const MyString *str, FILE *stream)
  * calling compar approximately num*log2(num) times.
  * so.. maybe O(NlgN)?
  * */
-void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, const char *b))
+void myStringCustomSort(MyString **arr, int len, int (*comp)(const char *a, const char *b))
 {
 
 	int cmpfunc(const void *a, const void *b)
 	{
 		int result = myStringCustomCompare((MyString *) a, (MyString *) b, comp);
-		if (result == MYSTRING_ERROR) return '\0';
+		if (result == MYSTR_ERROR_CODE) return '\0';
 		return result;
 	}
 
@@ -793,9 +795,15 @@ void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, con
  *
  * Time Complexity: see myStringCustomSort.
   */
-void myStringSort(MyString *arr[], int len)
+void myStringSort(MyString **arr, int len)
 {
-	qsort(arr, (size_t) len, sizeof(MyString *), (__compar_fn_t) myStringCompare);
+	int cmpfunc(const void *a, const void *b)
+	{
+		int result = myStringCustomCompare((MyString *) a, (MyString *) b, defaultComparator);
+		if (result == MYSTRING_ERROR) return '\0';
+		return result;
+	}
+	qsort(*arr, (size_t) len, sizeof(MyString*),  cmpfunc);
 }
 
 
@@ -807,7 +815,7 @@ void myStringSort(MyString *arr[], int len)
 void myStringSwap(MyString *str1, MyString *str2)
 {
 	//single temp general pointer.
-	void* tempPoint;
+	void *tempPoint;
 	//swap strings
 	tempPoint = str1->actualString;
 	str1->actualString = str2->actualString;
@@ -817,9 +825,9 @@ void myStringSwap(MyString *str1, MyString *str2)
 	str1->refCount = str2->refCount;
 	str2->refCount = tempPoint;
 	//swap lengths
-	*((int*)tempPoint) = str1->length;
+	*((int *) tempPoint) = str1->length;
 	str1->length = str2->length;
-	str2->length = *((int*)tempPoint);
+	str2->length = *((int *) tempPoint);
 
 	//and done.
 
@@ -833,31 +841,38 @@ void myStringSwap(MyString *str1, MyString *str2)
 #define TEST_STRING1 "A string is A string"
 #define TEST_STRING2 "B string is another String"
 #define TEST_STRING3 "not all strings begin with uppercase Letters"
+#define TEST_STRING6 "1234"
+#define TEST_STRING7 "xv"
 #define TEST_STRING4 "further strings"
 #define TEST_STRING5 "A string is A string!"
-#define TEST_STRING6 ""
 #define TEST_NUM1 1234567890
 #define TEST_NUM2 -1234567890
 #define TEST_NUM3 99999999999
-#define TEST_NUM4 "123456"
 
 
 void sortTest()
 {
 
-	MyString *arr[5];
+	MyString **arr = malloc(5*8);
+	MyString *a = myStringAlloc();
+	MyString *b = myStringAlloc();
+	MyString *c = myStringAlloc();
+	MyString *d = myStringAlloc();
+	MyString *e = myStringAlloc();
+
 	arr[0] = myStringAlloc();
 	arr[1] = myStringAlloc();
 	arr[2] = myStringAlloc();
 	arr[3] = myStringAlloc();
 	arr[4] = myStringAlloc();
-	myStringSetFromCString(arr[0], TEST_STRING1);
-	myStringSetFromCString(arr[3], TEST_STRING2);
-	myStringSetFromCString(arr[2], TEST_STRING3);
-	myStringSetFromCString(arr[4], TEST_NUM4);
-	myStringSetFromCString(arr[1], TEST_STRING6);
 
-	printf("comparing 2 strings: %d\n", myStringCompare(arr[2], arr[4]));
+	myStringSetFromCString(arr[0], TEST_STRING3);
+	myStringSetFromCString(arr[1], TEST_STRING2);
+	myStringSetFromCString(arr[2], TEST_STRING1);
+	myStringSetFromCString(arr[3], TEST_STRING6);
+	myStringSetFromCString(arr[4], TEST_STRING7);
+
+//	printf("comparing 2 strings: %d\n", myStringCompare(arr[2], arr[4]));
 	for (int i = 0; i < 5; ++i)
 	{
 		char *curString = myStringToCString(arr[i]);
@@ -873,11 +888,17 @@ void sortTest()
 	}
 
 	int result = 0;
-	result += strcmp(arr[0]->actualString, TEST_STRING1);
-	result += strcmp(arr[1]->actualString, TEST_STRING2);
+	result += strcmp(arr[0]->actualString, TEST_STRING6);
+	printf("The results arrr: %d\n", result);
+	result += strcmp(arr[1]->actualString, TEST_STRING7);
+	printf("The results arrr: %d\n", result);
 	result += strcmp(arr[2]->actualString, TEST_STRING1);
-	result += strcmp(arr[3]->actualString, TEST_STRING1);
-	result += strcmp(arr[4]->actualString, TEST_STRING1);
+	printf("The results arrr: %d\n", result);
+	result += strcmp(arr[3]->actualString, TEST_STRING2);
+	printf("The results arrr: %d\n", result);
+	result += strcmp(arr[4]->actualString, TEST_STRING3);
+	printf("The results arrr: %d\n", result);
+
 
 }
 
