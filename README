@@ -1,0 +1,18 @@
+
+*** QUESTIONS ***
+Forward declaration
+
+1)
+    defining the struct in the header file, as opposed to declaring it, prevents the end user from knowing
+    the exact implementation of the struct and using it independently.
+    by doing so, it allows for each including C file to have it's own implementation of the struct. thus
+    not harming any existing code. this could, and should be resloved with #ifndf though. it's not really a
+     disadvantage but rather a limitation that needs to be thought about.
+
+2)  if a C file is including a header with a struct forward declaration, then they would have to actually
+    implement the struct definition. the preprocessor simply puts the forward declaration at the top of the
+     C file, where forward declarations usually come anyway. then the C file is compiled as usual, having
+     the declared methods/structs already implemented, or not used.
+     trying to create a declared struct without defining it would work, unless that struct is accessed.
+
+

@@ -231,14 +231,15 @@ int myStringEqual(const MyString *str1, const MyString *str2);
 int myStringCustomEqual(const MyString *str1, const MyString *str2,
                         int (*comp)(const char *a, const char *b));
 
-/***
- * @return the amount of memory (all the memory that used by the MyString object itself and its allocations), in bytes, allocated to str1.
- */
+/**
+ * @return the amount of memory (all the memory that used by the MyString object itself and its allocations),
+ *  in bytes, allocated to str1.
+ **/
 unsigned long myStringMemUsage(const MyString *str1);
 
 /**
  * @return the length of the string in str1.
- */
+ **/
 unsigned long myStringLen(const MyString *str1);
 
 /**
