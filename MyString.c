@@ -69,7 +69,7 @@
 #define MAX_DIGITS_FOR_INT 11
 #define DECIMAL_SYSTEM 10
 #define NEGATIVE_SIGN '-'
-
+#define END_LINE '\0'
 // comparator GReater Than result
 #define COMP_GRT 1
 // comparator SMaller Than result
@@ -82,6 +82,7 @@
 // returns the minimum of 2 int values.
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
+#define ASCII_CASE_DIFF 32
 /*
  * MyString represents a manipulable string.
  * Implement reference counting for better memory consumption and improved performance.
@@ -112,7 +113,7 @@ MyString *myStringAlloc()
 
 	MyString *temp = malloc(sizeof(MyString));
 	temp->actualString = malloc(sizeof(char));
-	*temp->actualString = '\0';
+	*temp->actualString = END_LINE;
 	temp->length = 0;
 	temp->refCount = malloc(sizeof(int));
 	*temp->refCount = 0;
@@ -234,6 +235,7 @@ MyStringRetVal myStringSetFromMyString(MyString *str, const MyString *other)
 	freeCString(str);
 	refReset(str);
 	str->actualString = other->actualString;
+	str->length = other->length;
 	//re-point counter and increment.
 	str->refCount = other->refCount;
 	refCountIncrement(str);
@@ -248,6 +250,24 @@ MyStringRetVal myStringSetFromMyString(MyString *str, const MyString *other)
 inline static bool cStringNullCheck(const char *cStringToCheck)
 {
 	return cStringToCheck == NULL;
+}
+
+/**
+ * helper method, counts the number of chars in a string.
+ * returns the... number of cars in a string.
+ * accepts a..... string.
+ */
+static int cStringCheckLength(const char *cString)
+{
+	if (cString == NULL) return 1;
+	int counter = 0;
+	char curChar = *cString;
+	while (curChar != END_LINE)
+	{
+		counter++;
+		curChar = *(cString + (sizeof(char) * counter));
+	}
+	return counter;
 }
 
 /**
@@ -276,46 +296,37 @@ MyStringRetVal myStringFilter(MyString *str, bool (*filt)(const char *))
 	int counter = 0;
 	for (int i = 0; i < str->length; ++i)
 	{
-		const char *currentChar = &str->actualString[i];
+		const char *currentChar = &(str->actualString[i]);
 		if (filt(currentChar))
 		{
 			newString[counter++] = *currentChar;
 		}
 	}
-
+	newString[counter] = END_LINE;
 	// housekeeping: reallocate memory to minimize array size, free old Cstring
 	// ensure realloc was successfull
-	if (sizeof(realloc(newString, counter * sizeof(char))) != counter * sizeof(char))
+	newString = realloc(newString, counter * sizeof(char));
+
+	//return empty string if all chars were filtered out.
+	if (newString == NULL && counter == 0)
+	{
+		newString = realloc(newString, sizeof(char));
+		*newString = END_LINE;
+	}
+	else if (cStringCheckLength(newString) != counter)
 	{
 		printf(MALLOC_ERROR);
 		return MYSTRING_ERROR;
 	}
-
 	freeCString(str);
 	str->actualString = newString;
+	str->length = counter;
+
 	refReset(str);
 
 	return MYSTRING_SUCCESS;
 
 
-}
-
-/**
- * helper method, counts the number of chars in a string.
- * returns the... number of cars in a string.
- * accepts a..... string.
- */
-static int cStringCheckLength(const char *cString)
-{
-	if (cString == NULL) return -1;
-	int counter = 1;
-	char curChar = *cString;
-	while (curChar != '\0')
-	{
-		curChar = *(cString + (sizeof(char) * counter));
-		counter++;
-	}
-	return counter;
 }
 
 /**
@@ -342,7 +353,7 @@ MyStringRetVal myStringSetFromCString(MyString *str, const char *cString)
 
 	int length = cStringCheckLength(cString);
 
-	char *copyOfCstring = malloc(length * sizeof(char));
+	char *copyOfCstring = malloc(length + 1 * sizeof(char));
 
 	//check memory alloc
 	if (copyOfCstring == NULL)
@@ -351,14 +362,14 @@ MyStringRetVal myStringSetFromCString(MyString *str, const char *cString)
 		return MYSTRING_ERROR;
 	}
 
-	memcpy(copyOfCstring, cString, length * sizeof(char));
-	copyOfCstring[length]='\0';
+	memcpy(copyOfCstring, cString, (length) * sizeof(char));
+	copyOfCstring[length + 1] = END_LINE;
 	//free old Cstring then reassign the pointer to new string.
 	freeCString(str);
 	str->actualString = copyOfCstring;
 	refReset(str);
 
-	str->length = length-1;
+	str->length = length;
 	return MYSTRING_SUCCESS;
 }
 
@@ -419,7 +430,7 @@ static char *intToCString(int n)
 		printf(MALLOC_ERROR);
 		return NULL;
 	}
-	tempNum[i] = '\0';
+	tempNum[i] = END_LINE;
 
 	return reverseCstring(tempNum, i);
 }
@@ -550,6 +561,7 @@ char *myStringToCString(const MyString *str)
  */
 MyStringRetVal myStringCat(MyString *dest, const MyString *src)
 {
+	if (dest == NULL || src == NULL) return MYSTRING_ERROR;
 	if (*dest->refCount != 0)
 	{
 		char *oldString = myStringToCString(dest);
@@ -587,6 +599,9 @@ MyStringRetVal myStringCat(MyString *dest, const MyString *src)
  */
 MyStringRetVal myStringCatTo(const MyString *str1, const MyString *str2, MyString *result)
 {
+	if (str1 == NULL || str2 == NULL || result == NULL) {
+		return MYSTRING_ERROR;
+	}
 	if (myStringSetFromMyString(result, str1) == MYSTRING_ERROR) return MYSTRING_ERROR;
 	if (myStringCat(result, str2) == MYSTRING_ERROR) return MYSTRING_ERROR;
 	return MYSTRING_SUCCESS;
@@ -635,6 +650,7 @@ int myStringCustomCompare(const MyString *str1, const MyString *str2,
 
 }
 
+
 /**
  * helper method.
  * default comparator used by compare/equal methods
@@ -643,6 +659,16 @@ int myStringCustomCompare(const MyString *str1, const MyString *str2,
 static int defaultComparator(const char *a, const char *b)
 {
 	return (int) *a - (int) *b;
+}
+
+
+/**
+ * wrapper for use with the myQsort method.
+ * allows binary comparison between MyString objects using customComp and default comparison.
+ */
+static int defCompWrapper(const void *a, const void *b)
+{
+	return myStringCustomCompare((MyString *) a, (MyString *) b, defaultComparator);
 }
 
 /**
@@ -730,7 +756,9 @@ unsigned long myStringMemUsage(const MyString *str1)
  * O(1)...
  */
 unsigned long myStringLen(const MyString *str1)
+
 {
+	if (str1 == NULL) return MYSTRING_ERROR;
 	return (unsigned long) str1->length;
 }
 
@@ -747,16 +775,15 @@ MyStringRetVal myStringWrite(const MyString *str, FILE *stream)
 
 
 	if (stream == NULL) return MYSTRING_ERROR;
-	fprintf(stream, "\t%50s\n", "Here layeth the contents of a String Struct");
-	fprintf(stream, "\t%50.40s%-10i\n", "It's length is: ", str->length);
-	fprintf(stream, "\t%45.40s%10i%5s\n", "It has been referenced ", *str->refCount, " times.");
-	fprintf(stream, "\t%50s\n", "And it's content is:");
-	fprintf(stream, "\t%50s\n", str->actualString);
+	fprintf(stream, "\t%-50s\n", "Here layeth the contents of a String Struct");
+	fprintf(stream, "\t%-50.30s%-10i\n", "It's length is: ", str->length);
+	fprintf(stream, "\t%-45.30s%-10i%-5s\n", "It has been referenced ", *str->refCount, " times.");
+	fprintf(stream, "\t%-50s\n", "And it's content is:");
+	fprintf(stream, "\t%-50s\n", str->actualString);
 
-	fclose(stream);
+
 	return MYSTRING_SUCCESS;
 }
-
 
 
 /**
@@ -766,17 +793,16 @@ MyStringRetVal myStringWrite(const MyString *str, FILE *stream)
  * myStringCustomCompare with help of an external comparator for the actual comparisons.
  *
  */
-static void myQsort(MyString** arr, int len,  int (*comp)(const char *a, const char *b))
+static void myQsort(MyString **arr, int len, int (*comp)(const void *a, const void *b))
 {
-	for(int x=0; x<len; x++)
-
+	for (int x = 0; x < len; x++)
 	{
-		for(int y=0; y<len-1; y++)
+		for (int y = 0; y < len - 1; y++)
 		{
-			if(myStringCustomCompare(arr[y],arr[y+1],comp)>0)
+			if (comp(arr[y], arr[y + 1]) > 0)
 			{
-				MyString* temp = arr[y+1];
-				arr[y+1] = arr[y];
+				MyString *temp = arr[y + 1];
+				arr[y + 1] = arr[y];
 				arr[y] = temp;
 			}
 		}
@@ -791,14 +817,12 @@ static void myQsort(MyString** arr, int len,  int (*comp)(const char *a, const c
  *
  * RETURN VALUE:none
  *
- * Time Complexity: O(qsort).
- * from cplusplus.com: complexity- Unspecified, but quicksorts are generally linearithmic in num, on average,
- * calling compar approximately num*log2(num) times.
- * so.. maybe O(NlgN)?
+ * Time Complexity: O(N^2) - as i opted to use very simple bubble sort instead of wasting more time
+ * troubleshooting qsort.
  * */
-void myStringCustomSort(MyString **arr, int len, int (*comp)(const char *a, const char *b))
+void myStringCustomSort(MyString **arr, int len, int (*comp)(const void *a, const void *b))
 {
-	myQsort(arr,len,comp);
+	myQsort(arr, len, comp);
 
 }
 
@@ -813,7 +837,7 @@ void myStringCustomSort(MyString **arr, int len, int (*comp)(const char *a, cons
   */
 void myStringSort(MyString **arr, int len)
 {
-	myQsort(arr,len,defaultComparator);
+	myQsort(arr, len, defCompWrapper);
 }
 
 
@@ -846,8 +870,645 @@ void myStringSwap(MyString *str1, MyString *str2)
 
 #ifndef NDEBUG
 
-#include <string.h>
+#include <assert.h>
 
+
+/**
+ * print string to stdout
+ */
+static void print(const char *msg)
+{
+	if (msg != NULL)
+	{
+		printf("%-20.40s %-80s %20.40s \n", "****************", msg, "****************");
+	}
+}
+
+/**
+ * use memcmp to compare the internal cString in MyString with another cString
+ */
+static int myStringMemcmp(const MyString *str, const char *text)
+{
+	return memcmp(str->actualString, text, (size_t) (MIN(cStringCheckLength(text), cStringCheckLength
+			(str->actualString))));
+}
+
+/**
+ * swap test.
+ */
+static void swapTest()
+{
+	MyString *str1 = myStringAlloc(), *str2 = myStringAlloc();
+	myStringSetFromCString(str1, "Hello!");
+	myStringSetFromCString(str2, "World!");
+	myStringSwap(str1, str2);
+	if (myStringMemcmp(str1, "World!") || myStringMemcmp(str2, "Hello!")) print("Error with SwapTest");
+
+	myStringFree(str1);
+	myStringFree(str2);
+}
+
+/**
+ * custom Sort by string length.
+ */
+static int lengthComparator(const MyString *str1, const MyString *str2)
+{
+
+	return (str1)->length - (str2)->length;
+}
+
+/**
+ *  tests myStringCustomSort.
+ */
+static void customSortTest()
+{
+	MyString *s0 = myStringAlloc(), *s1 = myStringAlloc(), *s2 = myStringAlloc(),
+			*s3 = myStringAlloc(), *s4 = myStringAlloc(), *s5 = myStringAlloc(),
+			*s6 = myStringAlloc(), *s7 = myStringAlloc(), *s8 = myStringAlloc(),
+			*s9 = myStringAlloc();
+	MyString *arr[] = {s0, s1, s2, s3, s4, s5, s6, s7, s8, s9};
+	myStringSetFromCString(s0, "1234567890");
+	myStringSetFromCString(s1, "12345");
+	myStringSetFromCString(s2, "1234567");
+	myStringSetFromCString(s3, "12");
+	myStringSetFromCString(s4, "1");
+	myStringSetFromCString(s5, "123");
+	myStringSetFromCString(s6, "12345678");
+	myStringSetFromCString(s7, "1234");
+	myStringSetFromCString(s8, "123456");
+	myStringSetFromCString(s9, "123456789");
+
+	myStringCustomSort(arr, 10, (int (*)(const void *, const void *)) lengthComparator);
+
+	if (!(myStringMemcmp(arr[0], "1") || myStringMemcmp(arr[1], "12") || !myStringMemcmp(arr[2], "123")
+	    || myStringMemcmp(arr[3], "1234") || myStringMemcmp(arr[4], "12345")
+	    || myStringMemcmp(arr[5], "123456") || myStringMemcmp(arr[6], "1234567")
+	    || myStringMemcmp(arr[7], "12345678") || myStringMemcmp(arr[8], "123456789")
+	    || myStringMemcmp(arr[9], "1234567890")))
+	{
+		print("Error with custom sort test");
+	}
+
+
+	for (int i = 0; i < 10; myStringFree(arr[i++]))
+	{ }
+}
+
+/**
+ * Tests myStringSort.
+ */
+static void sortTest()
+{
+	MyString *s0 = myStringAlloc(), *s1 = myStringAlloc(), *s2 = myStringAlloc(),
+			*s3 = myStringAlloc(), *s4 = myStringAlloc(), *s5 = myStringAlloc(),
+			*s6 = myStringAlloc(), *s7 = myStringAlloc(), *s8 = myStringAlloc(),
+			*s9 = myStringAlloc();
+
+	MyString *arr[] = {s0, s1, s2, s3, s4, s5, s6, s7, s8, s9};
+
+	myStringSetFromCString(s0, "z");
+	myStringSetFromCString(s1, "5.0");
+	myStringSetFromCString(s2, "zz");
+	myStringSetFromCString(s3, "order");
+	myStringSetFromCString(s4, " 5.0");
+	myStringSetFromCString(s5, "zZ");
+	myStringSetFromCString(s6, "_order");
+	myStringSetFromCString(s7, "5.1");
+	myStringSetFromCString(s8, "z");
+	myStringSetFromCString(s9, "border");
+
+	myStringSort(arr, 10);
+
+	if (myStringMemcmp(arr[0], " 5.0") || myStringMemcmp(arr[1], "5.0")
+	    || myStringMemcmp(arr[2], "5.1") || myStringMemcmp(arr[3], "_order")
+	    || myStringMemcmp(arr[4], "border") || myStringMemcmp(arr[5], "order")
+	    || myStringMemcmp(arr[6], "z") || myStringMemcmp(arr[7], "z")
+	    || myStringMemcmp(arr[8], "zZ") || myStringMemcmp(arr[9], "zz"))
+	{
+		print("Error with sort test");
+	}
+
+	for (int i = 0; i < 10; myStringFree(arr[i++]))
+	{ }
+}
+
+/**
+ * Test myStringWrite.
+ */
+static void writeTest()
+{
+	FILE *f = fopen("writeTest.test", "w");
+	if (f != NULL)
+	{
+		MyString *str1 = myStringAlloc(), *str2 = myStringAlloc(), *str3 = myStringAlloc(),
+				*str4 = myStringAlloc();
+		myStringSetFromCString(str1, "Hello \n");
+		myStringSetFromCString(str2, "\tWorld!");
+		myStringSetFromCString(str3, "");
+		if (!(
+				myStringWrite(str1, f) == MYSTRING_SUCCESS || myStringWrite(str2, f) == MYSTRING_SUCCESS
+				|| myStringWrite(str3, f) == MYSTRING_SUCCESS || myStringWrite(str4, f) == MYSTRING_SUCCESS))
+		{
+			print("Error with write test : writing to file");
+		}
+
+		fclose(f);
+
+	}
+	else
+	{
+		print("Error with write test : opening file for writing");
+	}
+}
+
+/**
+ * Test myStringLen.
+ */
+static void lenTest()
+{
+	int testSum = 0;
+	MyString *str_len = myStringAlloc();
+	testSum += myStringLen(str_len);
+
+	myStringSetFromCString(str_len, "123456789");
+	testSum += myStringLen(str_len);
+
+	myStringSetFromCString(str_len, "");
+	testSum += myStringLen(str_len);
+
+	if (testSum != 9) print("Error with lenTest");
+
+	myStringFree(str_len);
+
+	if (!myStringLen(NULL) == (unsigned long) MYSTR_ERROR_CODE) print("Error with lenTest");
+}
+
+/**
+ * test memUsage method.
+ */
+static void memUsageTest()
+{
+	MyString *str1 = myStringAlloc();
+	myStringSetFromCString(str1, "asdf");
+	if (myStringMemUsage(str1) != 32)
+	{
+		print("Error with memUsage test : test valid string");
+	}
+	myStringSetFromCString(str1, "");
+	if (myStringMemUsage(str1) != 28)
+	{
+		print("Error with memUsage test : test empty string");
+	}
+	myStringFree(str1);
+}
+
+/**
+ * custom comparator - case insensitive
+ */
+static int caseInsensitiveEquality(const char *c1, const char *c2)
+{
+	if (c1 == NULL || c2 == NULL)
+	{
+		return MYSTR_ERROR_CODE;
+	}
+	if (*c2 == *c1)
+	{
+		return 0; // same character
+	}
+
+	return abs(*c2 - *c1) - ASCII_CASE_DIFF;
+}
+
+/**
+ * Test myStringCustomEqual.
+ */
+static void customEqualTest()
+{
+	int testsum = 0;
+	MyString *str1 = myStringAlloc();
+	myStringSetFromCString(str1, "aa");
+	MyString *str2 = myStringClone(str1);
+	if (myStringCustomEqual(str1, str2, caseInsensitiveEquality) <= 0) testsum++;
+
+	myStringSetFromMyString(str2, str1);
+	if (myStringCustomEqual(str1, str2, caseInsensitiveEquality) <= 0) testsum++;
+
+	myStringSetFromCString(str2, "aa");
+	if (myStringCustomEqual(str1, str2, caseInsensitiveEquality) <= 0) testsum++;
+
+	myStringSetFromCString(str2, "aA");
+	if (myStringCustomEqual(str1, str2, caseInsensitiveEquality) <= 0) testsum++;
+
+	myStringSetFromCString(str2, "ab");
+	if (myStringCustomEqual(str1, str2, caseInsensitiveEquality) != 0) testsum++;
+
+	if (myStringCustomEqual(str1, NULL, caseInsensitiveEquality) != MYSTR_ERROR_CODE) testsum++;
+
+	if (testsum != 0) print("Error in customEqual test");
+	myStringFree(str1);
+	myStringFree(str2);
+}
+
+/**
+ * Test myStringCompare.
+ */
+static void compareTest(int isEqualityCheck)
+{
+	int (*func)(const MyString *, const MyString *);
+	func = isEqualityCheck ? myStringEqual : myStringCompare;
+	MyString *str1 = myStringAlloc(), *str2 = myStringAlloc();
+	myStringSetFromCString(str1, "aa");
+	myStringSetFromCString(str2, "ab");
+	MyString *str3 = myStringClone(str1);
+
+	print("Checking comparison on cloned items");
+	assert(func(str1, str3) == (isEqualityCheck ? COMP_GRT : COMP_EQUAL));
+
+	print("Checking comparison on setFromMyString items");
+	myStringSetFromMyString(str3, str1);
+	assert(func(str1, str3) == (isEqualityCheck ? COMP_GRT : COMP_EQUAL));
+
+	print("Checking comparison from text identity");
+	myStringSetFromCString(str3, "aa");
+	assert(func(str1, str3) == (isEqualityCheck ? COMP_GRT : COMP_EQUAL));
+
+	print("Comparing \"aa\" and \"ab\"");
+	assert(func(str1, str2) == (isEqualityCheck ? COMP_EQUAL : COMP_SMT));
+
+	print("Comparing \"ab\" and \"aa\"");
+	assert(func(str2, str1) == (isEqualityCheck ? COMP_EQUAL : COMP_GRT));
+
+	print("Comparing \"aa\" and \"aaa");
+	myStringSetFromCString(str2, "aaa");
+	assert(func(str1, str2) == (isEqualityCheck ? COMP_EQUAL : COMP_SMT));
+
+	print("Attempting to compare incomparable");
+	assert(func(str1, NULL) == MYSTR_ERROR_CODE);
+
+	myStringFree(str1);
+	myStringFree(str2);
+	myStringFree(str3);
+}
+
+/**
+ * Tests the myStringEqual method.
+ */
+static void equalTest()
+{
+	compareTest(1);
+}
+
+/**
+ * @brief Defines a new comparison method between 2 chars, to be used with myStringCustomCompare.
+ * Reverses the normal comparison result.
+ */
+static int reverseCompare(const char *c1, const char *c2)
+{
+	if (c1 == NULL || c2 == NULL)
+	{
+		return MYSTR_ERROR_CODE;
+	}
+	return *c2 - *c1;
+}
+
+/**
+ * @brief Tests the myStringCustomCompare method.
+ */
+static void customCompareTest()
+{
+	MyString *str1 = myStringAlloc(), *str2 = myStringAlloc();
+	myStringSetFromCString(str1, "aa");
+	myStringSetFromCString(str2, "ab");
+	MyString *str3 = myStringClone(str1);
+
+	print("Checking comparison on cloned items");
+	assert(myStringCustomCompare(str1, str3, reverseCompare) == COMP_EQUAL);
+
+	print("Checking comparison on setFromMyString items");
+	myStringSetFromMyString(str3, str1);
+	assert(myStringCustomCompare(str1, str3, reverseCompare) == COMP_EQUAL);
+
+	print("Checking comparison from text identity");
+	myStringSetFromCString(str3, "aa");
+	assert(myStringCustomCompare(str1, str3, reverseCompare) == COMP_EQUAL);
+
+	print("Comparing \"aa\" and \"ab\"");
+	assert(myStringCustomCompare(str1, str2, reverseCompare) == COMP_GRT);
+
+	print("Comparing \"ab\" and \"aa\"");
+	assert(myStringCustomCompare(str2, str1, reverseCompare) == COMP_SMT);
+
+	print("Comparing \"aa\" and \"aaa");
+	myStringSetFromCString(str2, "aaa");
+	// this behavior is permanent (aa < aaa, always)
+	assert(myStringCustomCompare(str1, str2, reverseCompare) == COMP_SMT);
+
+	print("Attempting to compare incomparable");
+	assert(myStringCustomCompare(str1, NULL, reverseCompare) == MYSTR_ERROR_CODE);
+
+	myStringFree(str1);
+	myStringFree(str2);
+	myStringFree(str3);
+}
+
+// test myStringCompare or myStringEqual
+// remember equality check context: equality == COMP_GRT, inequality == COMP_EQUAL
+
+/**
+ * @brief Tests the myStringCatTo method.
+ */
+static void catToTest()
+{
+	MyString *str1 = myStringAlloc(), *str2 = myStringAlloc(), *result = myStringAlloc();
+	myStringSetFromCString(str1, "Hello ");
+	myStringSetFromCString(str2, "World!");
+	print("Concatenating \"Hello \" and \"World!\" to a third MyString");
+	assert(myStringCatTo(str1, str2, result) == MYSTRING_SUCCESS);
+	print("Validating content");
+	assert(!myStringMemcmp(result, "Hello World!"));
+	print("Attempting to invoke with result == NULL");
+	assert(myStringCatTo(str1, str2, NULL) == MYSTRING_ERROR);
+	myStringFree(str1);
+	myStringFree(str2);
+	myStringFree(result);
+}
+
+/**
+ * @brief Tests the myStringCat method.
+ */
+static void catTest()
+{
+	MyString *str1 = myStringAlloc(), *str2 = myStringAlloc();
+	myStringSetFromCString(str1, "Hello ");
+	myStringSetFromCString(str2, "World!");
+	print("Attempting to concatenate \"Hello \" and \"World!\"");
+	assert(myStringCat(str1, str2) == MYSTRING_SUCCESS);
+	print("Checking inner content");
+	assert(!myStringMemcmp(str1, "Hello World!"));
+	print("Attempting to access with NULL parameter");
+	assert(myStringCat(NULL, str2) == MYSTRING_ERROR);
+	assert(myStringCat(str1, NULL) == MYSTRING_ERROR);
+	myStringFree(str1);
+	myStringFree(str2);
+}
+
+/**
+ * @brief Tests the myStringToCString method.
+ */
+static void toCStringTest()
+{
+	MyString *str = myStringAlloc();
+	myStringSetFromCString(str, "I DONT KNOW HOW TO BREATH");
+	print("Comparing CString and MyString value...");
+	char *string = myStringToCString(str);
+	assert(string != NULL);
+	assert(!myStringMemcmp(str, string));
+
+	myStringFree(str);
+	free(string);
+}
+
+/**
+ * @brief Tests the myStringToInt method.
+ */
+static void toIntTest()
+{
+	MyString *str = myStringAlloc();
+	myStringSetFromCString(str, "512");
+	print("Attempting conversion from 512...");
+	assert(myStringToInt(str) == 512);
+
+	myStringSetFromCString(str, "-512");
+	print("Attempting conversion from -512...");
+	assert(myStringToInt(str) == -512);
+
+	myStringSetFromCString(str, " this is invalid adngjabgladtkadb");
+	print("Attempting conversion from invalid string...");
+	assert(myStringToInt(str) == MYSTR_ERROR_CODE);
+
+
+	myStringFree(str);
+}
+
+/**
+ * @brief Tests the myStringFromInt method.
+ * @note This tests valid ints, under the assumption that the compiler fails under
+ * 			non-integer types sent to this method (or it truncates them to ints).
+ */
+static void fromIntTest()
+{
+	MyString *str = myStringAlloc();
+	print("Attempting to create string from 1337 (comparing content)");
+	int result = myStringSetFromInt(str, 1337);
+	assert(result == MYSTRING_SUCCESS);
+	assert(!myStringMemcmp(str, "1337"));
+
+	print("Attempting to create string from -7331 (comparing content)");
+	result = myStringSetFromInt(str, -7331);
+	assert(result == MYSTRING_SUCCESS);
+	assert(!myStringMemcmp(str, "-7331"));
+
+	myStringFree(str);
+}
+
+/**
+ * @brief Filters only Latin letters
+ * @param c Character to filter
+ * @return true if character is [a-zA-Z], false otherwise
+ */
+static bool onlyLettersFilter(const char *c)
+{
+	return ((*c >= 65 && *c <= 90) || (*c >= 97 && *c <= 122));
+}
+
+/**
+ * @brief Filters only non-Latin letters
+ * @param c Character to filter
+ * @return true if character is [^a-zA-Z], false otherwise
+ */
+static bool onlyNonLettersFilter(const char *c)
+{
+	return ((*c < 65) || (*c > 90 && *c < 97) || (*c > 122));
+}
+
+/**
+ * @brief Filters only characters with 'holes' in them
+ * @param c Character to filter
+ * @return true if character has a hole in it (i.e. 'o', '8', 'Q'), false otherwise
+ */
+static bool fillsOnlyFilter(const char *c)
+{
+	switch (*c)
+	{
+		case '%':
+		case '@':
+		case '&':
+		case '6':
+		case '8':
+		case '9':
+		case '0':
+		case 'q':
+		case 'Q':
+		case 'R':
+		case 'O':
+		case 'o':
+		case 'P':
+		case 'p':
+		case 'a':
+		case 'd':
+		case 'D':
+		case 'g':
+		case 'A':
+		case 'B':
+		case 'b':
+		case 'e':
+			return true;
+		default:
+			return false;
+	}
+}
+
+/**
+ * @brief Dummy filter. Returns true for everything.
+ * @return true
+ */
+static bool trueFilter()
+{
+	return true;
+}
+
+/**
+ * @brief Dummy filter. Returns false for everything.
+ * @return false
+ */
+static bool falseFilter()
+{
+	return false;
+}
+
+/**
+ * @brief Tests the myStringFilter method.
+ */
+static void filterTest()
+{
+	MyString *str = myStringAlloc();
+	print("Running filter test with \"Hello World\"");
+	printf("\n");
+	print("Filtering letters only, comparing with \"HelloWorld\"");
+	myStringSetFromCString(str, "Hello World!");
+	int result = myStringFilter(str, onlyLettersFilter);
+	assert(result == MYSTRING_SUCCESS);
+	assert(!myStringMemcmp(str, "HelloWorld"));
+
+	print("Filtering non-letters only, comparing with \" !\"");
+	myStringSetFromCString(str, "Hello World!");
+	result = myStringFilter(str, onlyNonLettersFilter);
+	assert(result == MYSTRING_SUCCESS);
+	assert(!myStringMemcmp(str, " !"));
+
+	myStringSetFromCString(str, "Hello World!");
+	print("Filtering characters with 'holes' in them, comparing with \"eood\"");
+	result = myStringFilter(str, fillsOnlyFilter);
+	assert(result == MYSTRING_SUCCESS);
+	assert(!myStringMemcmp(str, "eood"));
+
+	myStringSetFromCString(str, "Hello World!");
+	print("Dummy filter (return true for all), comparing with \"Hello World!\"");
+	result = myStringFilter(str, (bool (*)(const char *)) trueFilter);
+	assert(result == MYSTRING_SUCCESS);
+	assert(!myStringMemcmp(str, "Hello World!"));
+
+	myStringSetFromCString(str, "Hello World!");
+	print("Dummy filter (return false for all), comparing with \"\"");
+	result = myStringFilter(str, (bool (*)(const char *)) falseFilter);
+	assert(result == MYSTRING_SUCCESS);
+	assert(!myStringMemcmp(str, ""));
+
+	myStringFree(str);
+}
+
+/**
+ * @brief Tests the myStringSetFromMyString method.
+ */
+static void MyStringFromMyStringTest()
+{
+	MyString *str = myStringAlloc(), *str2 = myStringAlloc();
+	myStringSetFromCString(str, "abcdefghijklmnopqrstuvwxyz");
+	print("Attempting to set second MyString with \"abcdefghijklmnopqrstuvwxyz\" and" \
+            " comparing literal content");
+	int result = myStringSetFromMyString(str2, str);
+	assert(result == MYSTRING_SUCCESS);
+	assert(!myStringMemcmp(str, "abcdefghijklmnopqrstuvwxyz"));
+	myStringFree(str2);
+	myStringFree(str);
+}
+
+/**
+ * @brief Tests the myStringClone method.
+ */
+static void cloneTest()
+{
+	MyString *str = myStringAlloc();
+	print("Attempting to clone newly-allocated MyString");
+	MyString *str2 = myStringClone(str);
+	assert(str2 != NULL);
+	assert(str->actualString == str2->actualString);
+
+	myStringSetFromCString(str, "abcdefghijklmnopqrstuvwxyz");
+	print("Attempting to clone MyString with \"abcdefghijklmnopqrstuvwxyz\"");
+	myStringFree(str2);
+
+	str2 = myStringClone(str);
+	assert(str2 != NULL);
+	assert(str->actualString == str2->actualString);
+	myStringFree(str2);
+	myStringFree(str);
+}
+
+/**
+ * @brief Tests the myStringFromCString method.
+ */
+static void myStringFromCStringTest()
+{
+	MyString *str = myStringAlloc();
+	print("Attempting to create new MyString from empty C string \"\"");
+	MyStringRetVal result = myStringSetFromCString(str, "");
+	assert(result == MYSTRING_SUCCESS);
+	print("Attempting to create new MyString from \"Hello World!\"");
+	result = myStringSetFromCString(str, "Hello World!");
+	assert(result == MYSTRING_SUCCESS);
+	print("Comparing literal content");
+	assert(myStringMemcmp(str, "Hello World!") == 0);
+	myStringFree(str);
+}
+
+/**
+ * @brief Tests the myStringAlloc and myStringFree methods.
+ */
+static void allocAndFreeTest()
+{
+	print("Attempting to allocate new memory for empty MyString");
+	MyString *str = myStringAlloc();
+	assert(str != NULL);
+	print("Attempting to free memory from empty MyString");
+	myStringFree(str);
+}
+
+/**
+ * @brief Runs a predefined unit-test. Prints a test separator line between tests.
+ * @param test A unit test function, receiving 0 arguments and returning nothing.
+ * @param funcName A C string with the function's name.
+ */
+static void runTest(void (*test)(), char *funcName)
+{
+	printf("*************************************\n");
+	printf("*********Running %s ************\n", funcName);
+	test(0);
+	printf("\nSuccess!\n");
+}
+
+
+/*
 #define TEST_STRING1 "A string is A string"
 #define TEST_STRING2 "B string is another String"
 #define TEST_STRING3 "not all strings begin with uppercase Letters"
@@ -932,10 +1593,32 @@ void swapTest()
 
 }
 
+*/
 
 int main()
 {
 	printf("running tests\n");
+
+	runTest(allocAndFreeTest, "allocAndFreeTest");
+	runTest(myStringFromCStringTest, "MyStringFromCStringTest");
+	runTest(cloneTest, "cloneTest");
+	runTest(MyStringFromMyStringTest, "MyStringFromMyStringTest");
+	runTest(filterTest, "filterTest");
+	runTest(fromIntTest, "fromIntTest");
+	runTest(toIntTest, "toIntTest");
+	runTest(toCStringTest, "toCStringTest");
+	runTest(catTest, "catTest");
+	runTest(catToTest, "catToTest");
+	runTest(compareTest, "compareTest");
+	runTest(customCompareTest, "customCompareTest");
+	runTest(equalTest, "equalTest");
+	runTest(customEqualTest, "customEqualTest");
+	runTest(memUsageTest, "memUsageTest");
+	runTest(lenTest, "lenTest");
+	runTest(swapTest, "swapTest");
+	runTest(sortTest, "sortTest");
+	runTest(customSortTest, "customSortTest");
+	runTest(writeTest, "writeTest");
 
 //	allocTest();
 //	freeTest();
@@ -956,8 +1639,8 @@ int main()
 //	stringLengthTest();
 //	writeTest();
 //	customSortTest();
-	sortTest();
-	swapTest();
+//	sortTest();
+//	swapTest();
 
 }
 

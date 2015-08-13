@@ -257,7 +257,7 @@ MyStringRetVal myStringWrite(const MyString *str, FILE *stream);
  * 
  * RETURN VALUE:none
   */
-void myStringCustomSort(MyString **arr, int len, int (*comp)(const char *a, const char *b));
+void myStringCustomSort(MyString **arr, int len, int (*comp)(const void *a, const void *b));
  
 /**
  * @brief sorts an array of MyString pointers according to the default comparison (like in myStringCompare)
