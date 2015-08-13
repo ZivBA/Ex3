@@ -823,10 +823,11 @@ void myStringSwap(MyString *str1, MyString *str2)
 	//and done.
 
 }
+/*
 
 #ifndef NDEBUG
 int main(){
 	printf("running tests\n");
 }
 
-#endif
+#endif*/

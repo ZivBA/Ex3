@@ -6,12 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "MyString.h"
-#include "mystring_demo.h"
 
 int main() {
 
-	test1();
-	test2();
 
 	char *tempString = malloc(sizeof(char));
 	MyString *stringA = myStringAlloc();
