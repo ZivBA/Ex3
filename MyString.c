@@ -758,6 +758,31 @@ MyStringRetVal myStringWrite(const MyString *str, FILE *stream)
 }
 
 
+
+/**
+ * as glibc qsort somehow corrupted the cStrings within my structs, i opted to stop wasting time (over 5
+ * hours!) trying to understand what's wrong with it, and just occam's razor it out.
+ * so here's a simple, not very efficient, but very working implementation of bubblesort while using
+ * myStringCustomCompare with help of an external comparator for the actual comparisons.
+ *
+ */
+static void myQsort(MyString** arr, int len,  int (*comp)(const char *a, const char *b))
+{
+	for(int x=0; x<len; x++)
+
+	{
+		for(int y=0; y<len-1; y++)
+		{
+			if(myStringCustomCompare(arr[y],arr[y+1],comp)>0)
+			{
+				MyString* temp = arr[y+1];
+				arr[y+1] = arr[y];
+				arr[y] = temp;
+			}
+		}
+	}
+}
+
 /**
  * @brief sort an array of MyString pointers
  * @param arr
@@ -773,16 +798,7 @@ MyStringRetVal myStringWrite(const MyString *str, FILE *stream)
  * */
 void myStringCustomSort(MyString **arr, int len, int (*comp)(const char *a, const char *b))
 {
-
-	int cmpfunc(const void *a, const void *b)
-	{
-		int result = myStringCustomCompare((MyString *) a, (MyString *) b, comp);
-		if (result == MYSTR_ERROR_CODE) return '\0';
-		return result;
-	}
-
-
-	qsort(arr, (size_t) len, sizeof(MyString *), cmpfunc);
+	myQsort(arr,len,comp);
 
 }
 
@@ -797,13 +813,7 @@ void myStringCustomSort(MyString **arr, int len, int (*comp)(const char *a, cons
   */
 void myStringSort(MyString **arr, int len)
 {
-	int cmpfunc(const void *a, const void *b)
-	{
-		int result = myStringCustomCompare((MyString *) a, (MyString *) b, defaultComparator);
-		if (result == MYSTRING_ERROR) return '\0';
-		return result;
-	}
-	qsort(*arr, (size_t) len, sizeof(MyString*),  cmpfunc);
+	myQsort(arr,len,defaultComparator);
 }
 
 
