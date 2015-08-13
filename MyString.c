@@ -54,6 +54,7 @@
  * 
  **/
 
+
 #include <stdlib.h>
 #include <string.h>
 #include "MyString.h"
@@ -681,8 +682,8 @@ int myStringCompare(const MyString *str1, const MyString *str2)
   */
 int myStringEqual(const MyString *str1, const MyString *str2)
 {
-	int result = myStringCompare(str1, str2);
-	return result == MYSTR_ERROR_CODE  ? MYSTR_ERROR_CODE : (result == COMP_EQUAL ? COMP_TRUE : COMP_FALSE);
+    int result = myStringCompare(str1, str2);
+    return result == MYSTR_ERROR_CODE ? MYSTR_ERROR_CODE : (result == COMP_EQUAL ? COMP_TRUE : COMP_FALSE);
 }
 
 
@@ -794,7 +795,7 @@ void myStringCustomSort(MyString *arr[], int len, int (*comp)(const char *a, con
   */
 void myStringSort(MyString *arr[], int len)
 {
-	qsort(arr, (size_t) len, sizeof(MyString *), myStringCompare);
+	qsort(arr, (size_t) len, sizeof(MyString *), (__compar_fn_t) myStringCompare);
 }
 
 
@@ -823,11 +824,111 @@ void myStringSwap(MyString *str1, MyString *str2)
 	//and done.
 
 }
-/*
+
 
 #ifndef NDEBUG
-int main(){
-	printf("running tests\n");
+
+#include <string.h>
+
+#define TEST_STRING1 "A string is A string"
+#define TEST_STRING2 "B string is another String"
+#define TEST_STRING3 "not all strings begin with uppercase Letters"
+#define TEST_STRING4 "further strings"
+#define TEST_STRING5 "A string is A string!"
+#define TEST_STRING6 ""
+#define TEST_NUM1 1234567890
+#define TEST_NUM2 -1234567890
+#define TEST_NUM3 99999999999
+#define TEST_NUM4 "123456"
+
+
+void sortTest()
+{
+
+	MyString *arr[5];
+	arr[0] = myStringAlloc();
+	arr[1] = myStringAlloc();
+	arr[2] = myStringAlloc();
+	arr[3] = myStringAlloc();
+	arr[4] = myStringAlloc();
+	myStringSetFromCString(arr[0], TEST_STRING1);
+	myStringSetFromCString(arr[3], TEST_STRING2);
+	myStringSetFromCString(arr[2], TEST_STRING3);
+	myStringSetFromCString(arr[4], TEST_NUM4);
+	myStringSetFromCString(arr[1], TEST_STRING6);
+
+	printf("comparing 2 strings: %d\n", myStringCompare(arr[2], arr[4]));
+	for (int i = 0; i < 5; ++i)
+	{
+		char *curString = myStringToCString(arr[i]);
+		printf("string num %i is: %s\n", i, curString);
+	}
+
+	myStringSort(arr, 5);
+
+	for (int i = 0; i < 5; ++i)
+	{
+		char *curString = myStringToCString(arr[i]);
+		printf("string num %i is: %s\n", i, curString);
+	}
+
+	int result = 0;
+	result += strcmp(arr[0]->actualString, TEST_STRING1);
+	result += strcmp(arr[1]->actualString, TEST_STRING2);
+	result += strcmp(arr[2]->actualString, TEST_STRING1);
+	result += strcmp(arr[3]->actualString, TEST_STRING1);
+	result += strcmp(arr[4]->actualString, TEST_STRING1);
+
 }
 
-#endif*/
+void swapTest()
+{
+	MyString *str1;
+	str1 = myStringAlloc();
+	myStringSetFromCString(str1, TEST_STRING1);
+	MyString *str2;
+	str2 = myStringAlloc();
+	myStringSetFromCString(str2, TEST_STRING2);
+	myStringSwap(str1, str2);
+
+	int result = strcmp(str1->actualString, TEST_STRING2);
+	int result2 = strcmp(str2->actualString, TEST_STRING1);
+
+	if (result + result2 != 0)
+	{
+		printf("Tested the swap method, but it failed\n");
+	}
+
+}
+
+
+int main()
+{
+	printf("running tests\n");
+
+//	allocTest();
+//	freeTest();
+//	cloneTest();
+//	filterTest();
+//	myStringFromMyStringTest();
+//	myStringFromCstringTest();
+//	myStringFromIntTest();
+//	myStringToIntTest();
+//	myStringToCstrinTest();
+//	catTest();
+//	catToTest();
+//	compareTest();
+//	customCompareTest();
+//	equalTest();
+//	customEqualTest();
+//	memUsageTest();
+//	stringLengthTest();
+//	writeTest();
+//	customSortTest();
+	sortTest();
+	swapTest();
+
+}
+
+
+#endif
